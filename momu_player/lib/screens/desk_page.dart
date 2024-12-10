@@ -90,12 +90,6 @@ class _DeskPageState extends State<DeskPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Expanded(
-            child: Text(
-              'Filter Section',
-              style: kSliderTextStyle,
-            ),
-          ),
           Expanded(
             child: _buildFilterButtons(),
           ),
@@ -215,12 +209,14 @@ class _DeskPageState extends State<DeskPage> {
         ],
       ),
       // Main body layout with sound keys and filter section
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          ...soundKeyConfigs.map(_buildSoundKeyRow),
-          _buildFilterSection(),
-        ],
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            ...soundKeyConfigs.map(_buildSoundKeyRow),
+            _buildFilterSection(),
+          ],
+        ),
       ),
     );
   }
