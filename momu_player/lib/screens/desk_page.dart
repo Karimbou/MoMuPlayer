@@ -86,18 +86,25 @@ class _DeskPageState extends State<DeskPage> {
   // Builds the filter control section UI
   Widget _buildFilterSection() {
     return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: _buildFilterButtons(),
-          ),
-          Expanded(child: _buildEffectSlider()),
-          const SizedBox(
-            height: 20.0,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.only(left: 15.0, right: 15.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: _buildFilterButtons(),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(child: _buildEffectSlider()),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -106,8 +113,22 @@ class _DeskPageState extends State<DeskPage> {
   Widget _buildFilterButtons() {
     return SegmentedButtonTheme(
       data: SegmentedButtonTheme.of(context).copyWith(
-        style: const ButtonStyle(
-          alignment: Alignment.center,
+        style: const ButtonStyle().copyWith(
+          textStyle: WidgetStatePropertyAll(
+            TextStyle(
+              backgroundColor: Colors.yellowAccent.withOpacity(0.1),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4.0),
+            ),
+          ),
+          overlayColor: WidgetStatePropertyAll(
+            Colors.greenAccent.withOpacity(0.2),
+          ),
         ),
       ),
       child: SegmentedButton<Filter>(
@@ -145,10 +166,6 @@ class _DeskPageState extends State<DeskPage> {
       ),
       child: Column(
         children: [
-          const Text(
-            'Effect Intensity',
-            style: kSliderTextStyle,
-          ),
           Slider(
             value: wetValue,
             min: 0.1,
