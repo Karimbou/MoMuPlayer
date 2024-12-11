@@ -1,11 +1,15 @@
+// A settings page for audio configuration in a Flutter app
 import 'package:flutter/material.dart';
 import 'package:momu_player/audio/audio_controller.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import '../components/slider_layout.dart';
 
+// Main widget class for the settings page
 class SettingsPage extends StatefulWidget {
+  // Audio controller instance passed from parent
   final AudioController audioController;
 
+  // Constructor requiring audioController
   const SettingsPage({
     super.key,
     required this.audioController,
@@ -15,18 +19,22 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
+// State class holding the actual implementation
 class _SettingsPageState extends State<SettingsPage> {
-  double _reverbRoomSize = 0.0;
-  double _delayTime = 0.0;
-  double _delayDecay = 0.0;
-  SoundType _selectedSound = SoundType.wurli;
+  // State variables for audio effects
+  double _reverbRoomSize = 0.0; // Controls reverb room size (0.0 - 1.0)
+  double _delayTime = 0.0; // Controls echo delay time (0.0 - 1.0)
+  double _delayDecay = 0.0; // Controls echo decay rate (0.0 - 1.0)
+  SoundType _selectedSound = SoundType.wurli; // Currently selected instrument
 
+  // Called when widget is first created
   @override
   void initState() {
     super.initState();
     _loadCurrentSettings();
   }
 
+  // Loads current audio settings from the audio controller
   void _loadCurrentSettings() {
     final SoLoud soloud = widget.audioController.soloud;
     setState(() {
@@ -36,12 +44,14 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  // Builds the main settings UI containing all audio controls
   Widget _buildFilterSettings() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Reverb section
           const Text(
             'Reverb Settings',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -54,6 +64,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   .value = value;
             });
           }),
+
+          // Delay section
           const SizedBox(height: 32),
           const Text(
             'Delay Settings',
@@ -75,12 +87,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   value;
             });
           }),
+
+          // Sound selection section
           const SizedBox(height: 32),
           const Text(
             'Sound Selection',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
+          // Segmented button for selecting different instrument sounds
           SegmentedButton<SoundType>(
             segments: const <ButtonSegment<SoundType>>[
               ButtonSegment<SoundType>(
@@ -112,6 +127,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // Helper method to build consistent slider sections
   Widget _buildSliderSection(
       String label, double value, Function(double) onChanged) {
     return Column(
@@ -135,6 +151,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // Main build method for the settings page
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,4 +167,5 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
+// Enum defining available instrument sound types
 enum SoundType { wurli, xylophone, sound3, sound4 }
