@@ -35,43 +35,58 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildFilterSettings() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Reverb Settings', style: TextStyle(fontSize: 20)),
-        _buildSlider(
-          'Room Size',
-          _reverbRoomSize,
-          (value) {
-            setState(() {
-              _reverbRoomSize = value;
-              widget.audioController.soloud.filters.freeverbFilter.roomSize
-                  .value = value;
-            });
-          },
+        Row(
+          children: [
+            const Text(
+              'Reverb Settings',
+              style: TextStyle(fontSize: 20),
+            ),
+            _buildSlider(
+              'Room Size',
+              _reverbRoomSize,
+              (value) {
+                setState(() {
+                  _reverbRoomSize = value;
+                  widget.audioController.soloud.filters.freeverbFilter.roomSize
+                      .value = value;
+                });
+              },
+            ),
+          ],
         ),
         const SizedBox(height: 20),
-        const Text('Delay Settings', style: TextStyle(fontSize: 20)),
-        _buildSlider(
-          'Delay Time',
-          _delayTime,
-          (value) {
-            setState(() {
-              _delayTime = value;
-              widget.audioController.soloud.filters.echoFilter.delay.value =
-                  value;
-            });
-          },
-        ),
-        _buildSlider(
-          'Decay',
-          _delayDecay,
-          (value) {
-            setState(() {
-              _delayDecay = value;
-              widget.audioController.soloud.filters.echoFilter.decay.value =
-                  value;
-            });
-          },
+        Row(
+          children: [
+            const Text(
+              'Delay Settings',
+              style: TextStyle(fontSize: 20),
+            ),
+            // Slider Container
+            _buildSlider(
+              'Delay Time',
+              _delayTime,
+              (value) {
+                setState(() {
+                  _delayTime = value;
+                  widget.audioController.soloud.filters.echoFilter.delay.value =
+                      value;
+                });
+              },
+            ),
+            _buildSlider(
+              'Decay',
+              _delayDecay,
+              (value) {
+                setState(() {
+                  _delayDecay = value;
+                  widget.audioController.soloud.filters.echoFilter.decay.value =
+                      value;
+                });
+              },
+            ),
+          ],
         ),
       ],
     );

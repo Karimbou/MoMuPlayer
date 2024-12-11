@@ -27,12 +27,12 @@ void main() async {
   await audioController.initializeSoLoud();
 
   runApp(
-    MyApp(audioController: audioController),
+    MoMuPlayerApp(audioController: audioController),
   );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({required this.audioController, super.key});
+class MoMuPlayerApp extends StatelessWidget {
+  const MoMuPlayerApp({required this.audioController, super.key});
 
   final AudioController audioController;
 

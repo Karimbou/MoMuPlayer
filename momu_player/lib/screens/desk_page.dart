@@ -4,6 +4,7 @@ import 'package:momu_player/components/sound_key.dart';
 import 'package:momu_player/constants.dart';
 import 'package:momu_player/audio/audio_controller.dart';
 import 'settings_page.dart';
+import '../components/slider_layout.dart';
 
 // Main DeskPage widget that serves as the primary screen for the sound pads
 class DeskPage extends StatefulWidget {
@@ -155,15 +156,7 @@ class _DeskPageState extends State<DeskPage> {
   // Creates a slider to control effect intensity
   Widget _buildEffectSlider() {
     return SliderTheme(
-      data: SliderTheme.of(context).copyWith(
-        // Customize slider appearance
-        activeTrackColor: Colors.white,
-        inactiveTrackColor: const Color(0xFF8D8E98),
-        thumbColor: const Color(0xffeb1555),
-        overlayColor: const Color(0x29eb1555),
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 18.0),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 35.0),
-      ),
+      data: getCustomSliderTheme(context),
       child: Column(
         children: [
           Slider(
