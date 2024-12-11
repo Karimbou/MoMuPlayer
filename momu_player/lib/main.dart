@@ -39,17 +39,17 @@ class MoMuPlayerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: kAppName,
+      theme: ThemeData.dark(
+        useMaterial3: true,
+      ).copyWith(
+        primaryColor: const Color(0xFF0A0E21),
+        scaffoldBackgroundColor: const Color(0xFF0A0E21),
+      ),
+      home: DeskPage(
         title: kAppName,
-        theme: ThemeData.dark(
-          useMaterial3: true,
-        ).copyWith(
-          primaryColor: const Color(0xFF0A0E21),
-          scaffoldBackgroundColor: const Color(0xFF0A0E21),
-        ),
-        home: // MyHomePage(audioController: audioController),
-            DeskPage(
-          title: kAppName,
-          audioController: audioController,
-        ));
+        audioController: audioController,
+      ),
+    );
   }
 }

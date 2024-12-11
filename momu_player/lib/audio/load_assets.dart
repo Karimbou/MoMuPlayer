@@ -46,9 +46,9 @@ void applyInitialAudioEffects() {
   _soloud.filters.freeverbFilter.activate();
 
   _soloud.filters.echoFilter.wet.value = 0.0;
-  _soloud.filters.echoFilter.delay.value = 0.1;
-  _soloud.filters.echoFilter.decay.value = 0.5;
+  _soloud.filters.echoFilter.delay.value = 0.0;
+  _soloud.filters.echoFilter.decay.value = 0.0;
 
-  _soloud.filters.freeverbFilter.wet.value = 0.1;
+  _soloud.filters.freeverbFilter.wet.value = 0.0;
   _soloud.filters.freeverbFilter.roomSize.value = 0.0;
 }
