@@ -20,16 +20,22 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  double _reverbRoomSize = 0.0;
-  double _delayTime = 0.0;
-  double _delayDecay = 0.0;
+  // Constants
+  static const double minFilterValue = 0.001; // Changed from MIN_FILTER_VALUE
+
+  // Filter state
+  double _reverbRoomSize = minFilterValue; // Updated reference
+  double _delayTime = minFilterValue; // Updated reference
+  double _delayDecay = minFilterValue; // Updated reference
   SoundType _selectedSound = SoundType.wurli;
+
   @override
   void initState() {
     super.initState();
     _loadCurrentSettings();
   }
 
+  // Filter Management Methods
   void _loadCurrentSettings() {
     final SoLoud soloud = widget.audioController.soloud;
     setState(() {
@@ -39,87 +45,40 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  Widget _buildFilterSettings() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'Reverb Settings',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _buildSliderSection('Room Size', _reverbRoomSize, (value) {
-            setState(() {
-              _reverbRoomSize = value;
-              widget.audioController.soloud.filters.freeverbFilter.roomSize
-                  .value = value;
-            });
-          }),
-          const SizedBox(height: 32),
-          const Text(
-            'Delay Settings',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _buildSliderSection('Delay Time', _delayTime, (value) {
-            setState(() {
-              _delayTime = value;
-              widget.audioController.soloud.filters.echoFilter.delay.value =
-                  value;
-            });
-          }),
-          const SizedBox(height: 16),
-          _buildSliderSection('Decay', _delayDecay, (value) {
-            setState(() {
-              _delayDecay = value;
-              widget.audioController.soloud.filters.echoFilter.decay.value =
-                  value;
-            });
-          }),
-          const SizedBox(height: 32),
-          const Text(
-            'Sound Selection',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          SegmentedButton<SoundType>(
-            segments: const <ButtonSegment<SoundType>>[
-              ButtonSegment<SoundType>(
-                value: SoundType.wurli,
-                label: Text('Wurli'),
-              ),
-              ButtonSegment<SoundType>(
-                value: SoundType.xylophone,
-                label: Text('Xylophone'),
-              ),
-              ButtonSegment<SoundType>(
-                value: SoundType.sound3,
-                label: Text('Sound 3'),
-              ),
-              ButtonSegment<SoundType>(
-                value: SoundType.sound4,
-                label: Text('Sound 4'),
-              ),
-            ],
-            selected: {_selectedSound},
-            onSelectionChanged: (Set<SoundType> selection) {
-              setState(() {
-                _selectedSound = selection.first;
-                String instrumentName = _selectedSound.name;
-                switchInstrumentSounds(instrumentName)
-                    .then((_) => _log.info('Successfully switched instruments'))
-                    .catchError((error) =>
-                        _log.severe('Error switching instruments', error));
-              });
-            },
-          ),
-        ],
-      ),
-    );
+  void _updateReverbFilter(double value) {
+    try {
+      final freeverbFilter =
+          widget.audioController.soloud.filters.freeverbFilter;
+      if (!freeverbFilter.isActive) {
+        freeverbFilter.activate();
+      }
+      freeverbFilter.roomSize.value = value;
+      freeverbFilter.wet.value = value;
+      _log.info('Updated reverb settings to: $value');
+    } catch (e) {
+      _log.severe('Failed to update reverb settings: $e');
+    }
   }
 
+  void _updateDelayFilter(double value, {bool isDecay = false}) {
+    try {
+      final echoFilter = widget.audioController.soloud.filters.echoFilter;
+      if (!echoFilter.isActive) {
+        echoFilter.activate();
+      }
+      if (isDecay) {
+        echoFilter.decay.value = value;
+      } else {
+        echoFilter.delay.value = value;
+        echoFilter.wet.value = value;
+      }
+      _log.info('Updated delay ${isDecay ? "decay" : "time"} to: $value');
+    } catch (e) {
+      _log.severe('Failed to update delay settings: $e');
+    }
+  }
+
+  // UI Building Methods
   Widget _buildSliderSection(
       String label, double value, Function(double) onChanged) {
     return Column(
@@ -134,12 +93,117 @@ class _SettingsPageState extends State<SettingsPage> {
           data: getCustomSliderTheme(context),
           child: Slider(
             value: value,
-            min: 0.0,
+            min: minFilterValue,
             max: 1.0,
-            onChanged: onChanged,
+            onChanged: (newValue) {
+              setState(() {
+                onChanged(newValue);
+              });
+            },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildReverbSettings() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Reverb Settings',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        _buildSliderSection('Room Size', _reverbRoomSize, (value) {
+          _reverbRoomSize = value;
+          _updateReverbFilter(value);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildDelaySettings() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Delay Settings',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        _buildSliderSection('Delay Time', _delayTime, (value) {
+          _delayTime = value;
+          _updateDelayFilter(value);
+        }),
+        const SizedBox(height: 16),
+        _buildSliderSection('Decay', _delayDecay, (value) {
+          _delayDecay = value;
+          _updateDelayFilter(value, isDecay: true);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSoundSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Sound Selection',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        SegmentedButton<SoundType>(
+          segments: const <ButtonSegment<SoundType>>[
+            ButtonSegment<SoundType>(
+              value: SoundType.wurli,
+              label: Text('Wurli'),
+            ),
+            ButtonSegment<SoundType>(
+              value: SoundType.xylophone,
+              label: Text('Xylophone'),
+            ),
+            ButtonSegment<SoundType>(
+              value: SoundType.sound3,
+              label: Text('Sound 3'),
+            ),
+            ButtonSegment<SoundType>(
+              value: SoundType.sound4,
+              label: Text('Sound 4'),
+            ),
+          ],
+          selected: {_selectedSound},
+          onSelectionChanged: _handleSoundSelection,
+        ),
+      ],
+    );
+  }
+
+  void _handleSoundSelection(Set<SoundType> selection) {
+    setState(() {
+      _selectedSound = selection.first;
+      String instrumentName = _selectedSound.name;
+      switchInstrumentSounds(instrumentName)
+          .then((_) => _log.info('Successfully switched instruments'))
+          .catchError(
+              (error) => _log.severe('Error switching instruments', error));
+    });
+  }
+
+  Widget _buildAllSettings() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildReverbSettings(),
+          const SizedBox(height: 32),
+          _buildDelaySettings(),
+          const SizedBox(height: 32),
+          _buildSoundSelection(),
+        ],
+      ),
     );
   }
 
@@ -151,7 +215,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          child: _buildFilterSettings(),
+          child: _buildAllSettings(),
         ),
       ),
     );

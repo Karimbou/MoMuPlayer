@@ -50,35 +50,37 @@ class _DeskPageState extends State<DeskPage> {
   // Applies the selected filter with current wetValue
   void _applyFilter() {
     try {
+      const double minFilterValue = 0.001; // Minimum allowed value for filters
+
       switch (selectedFilter) {
         case Filter.reverb:
-          // Apply stronger reverb effect
+          // Apply reverb effect
           widget.audioController.soloud.filters.freeverbFilter.wet.value =
               wetValue;
           widget.audioController.soloud.filters.freeverbFilter.roomSize.value =
               wetValue;
-          widget.audioController.soloud.filters.echoFilter.wet.value = 0.0;
+          widget.audioController.soloud.filters.echoFilter.wet.value =
+              minFilterValue;
           _log.info('Applied reverb filter with intensity: $wetValue');
           break;
         case Filter.delay:
-          // Apply stronger delay effect
+          // Apply delay effect
           widget.audioController.soloud.filters.echoFilter.wet.value = wetValue;
-          widget.audioController.soloud.filters.echoFilter.delay.value =
-              wetValue * 0.5;
-          widget.audioController.soloud.filters.echoFilter.decay.value =
-              wetValue * 0.7;
-          widget.audioController.soloud.filters.freeverbFilter.wet.value = 0.0;
+          widget.audioController.soloud.filters.freeverbFilter.wet.value =
+              minFilterValue;
           _log.info('Applied delay filter with intensity: $wetValue');
           break;
         case Filter.off:
-          // Completely turn off all effects
-          widget.audioController.soloud.filters.freeverbFilter.wet.value = 0.0;
+          // Turn off all effects by setting them to minimum value instead of 0
+          widget.audioController.soloud.filters.freeverbFilter.wet.value =
+              minFilterValue;
           widget.audioController.soloud.filters.freeverbFilter.roomSize.value =
-              0.0;
-          widget.audioController.soloud.filters.echoFilter.wet.value = 0.0;
-          widget.audioController.soloud.filters.echoFilter.delay.value = 0.0;
-          widget.audioController.soloud.filters.echoFilter.decay.value = 0.0;
-          _log.info('Disabled all filters');
+              minFilterValue;
+          widget.audioController.soloud.filters.echoFilter.wet.value =
+              minFilterValue;
+          widget.audioController.soloud.filters.echoFilter.delay.value =
+              minFilterValue;
+          _log.info('Set all filters to minimum value');
           break;
       }
     } catch (e) {
