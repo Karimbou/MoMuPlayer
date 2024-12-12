@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:momu_player/audio/audio_controller.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:momu_player/audio/load_assets.dart';
+import 'package:logging/logging.dart';
 import '../components/slider_layout.dart';
+
+final Logger _log = Logger('SettingsPage');
 
 class SettingsPage extends StatefulWidget {
   final AudioController audioController;
@@ -105,9 +108,9 @@ class _SettingsPageState extends State<SettingsPage> {
               setState(() {
                 _selectedSound = selection.first;
                 switchInstrumentSounds(_selectedSound.toString())
-                    .then((_) => print('Successfully switched instruments'))
+                    .then((_) => _log.info('Successfully switched instruments'))
                     .catchError((error) =>
-                        print('Error switching instruments: $error'));
+                        _log.severe('Error switching instruments', error));
               });
             },
           ),
