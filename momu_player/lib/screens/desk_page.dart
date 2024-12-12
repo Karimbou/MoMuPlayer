@@ -180,20 +180,20 @@ class _DeskPageState extends State<DeskPage> {
     // Define configuration for sound keys including colors and sound paths
     final soundKeyConfigs = [
       [
-        const SoundKeyConfig(color: kTabColorGreen, soundPath: 'wurli_c'),
-        const SoundKeyConfig(color: kTabColorBlue, soundPath: 'wurli_d'),
+        const SoundKeyConfig(color: kTabColorGreen, soundPath: 'note_c'),
+        const SoundKeyConfig(color: kTabColorBlue, soundPath: 'note_d'),
       ],
       [
-        const SoundKeyConfig(color: kTabColorOrange, soundPath: 'wurli_e'),
-        const SoundKeyConfig(color: kTabColorPink, soundPath: 'wurli_f'),
+        const SoundKeyConfig(color: kTabColorOrange, soundPath: 'note_e'),
+        const SoundKeyConfig(color: kTabColorPink, soundPath: 'note_f'),
       ],
       [
-        const SoundKeyConfig(color: kTabColorYellow, soundPath: 'wurli_g'),
-        const SoundKeyConfig(color: kTabColorPurple, soundPath: 'wurli_a'),
+        const SoundKeyConfig(color: kTabColorYellow, soundPath: 'note_g'),
+        const SoundKeyConfig(color: kTabColorPurple, soundPath: 'note_a'),
       ],
       [
-        const SoundKeyConfig(color: kTabColorWhite, soundPath: 'wurli_b'),
-        const SoundKeyConfig(color: kTabColorRed, soundPath: 'wurli_c_oc'),
+        const SoundKeyConfig(color: kTabColorWhite, soundPath: 'note_b'),
+        const SoundKeyConfig(color: kTabColorRed, soundPath: 'note_c_oc'),
       ],
     ];
 

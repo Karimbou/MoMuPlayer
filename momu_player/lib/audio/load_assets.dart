@@ -12,21 +12,21 @@ void setupLoadAssets(SoLoud soloud, Map<String, AudioSource> preloadedSounds) {
 
 Future<void> loadAssets() async {
   try {
-    _preloadedSounds['wurli_c'] =
+    _preloadedSounds['note_c'] =
         await _soloud.loadAsset('assets/sounds/wurli/wurli_c.wav');
-    _preloadedSounds['wurli_d'] =
+    _preloadedSounds['note_d'] =
         await _soloud.loadAsset('assets/sounds/wurli/wurli_d.wav');
-    _preloadedSounds['wurli_e'] =
+    _preloadedSounds['note_e'] =
         await _soloud.loadAsset('assets/sounds/wurli/wurli_e.wav');
-    _preloadedSounds['wurli_f'] =
+    _preloadedSounds['note_f'] =
         await _soloud.loadAsset('assets/sounds/wurli/wurli_f.wav');
-    _preloadedSounds['wurli_g'] =
+    _preloadedSounds['note_g'] =
         await _soloud.loadAsset('assets/sounds/wurli/wurli_g.wav');
-    _preloadedSounds['wurli_a'] =
+    _preloadedSounds['note_a'] =
         await _soloud.loadAsset('assets/sounds/wurli/wurli_a.wav');
-    _preloadedSounds['wurli_b'] =
+    _preloadedSounds['note_b'] =
         await _soloud.loadAsset('assets/sounds/wurli/wurli_b.wav');
-    _preloadedSounds['wurli_c_oc'] =
+    _preloadedSounds['note_c_oc'] =
         await _soloud.loadAsset('assets/sounds/wurli/wurli_c_oc.wav');
 
     _log.info(
@@ -65,41 +65,41 @@ Future<void> switchInstrumentSounds(String instrumentType) async {
 }
 
 Future<void> _loadWurlitzerSounds() async {
-  _preloadedSounds['wurli_c'] =
+  _preloadedSounds['note_c'] =
       await _soloud.loadAsset('assets/sounds/wurli/wurli_c.wav');
-  _preloadedSounds['wurli_d'] =
+  _preloadedSounds['note_d'] =
       await _soloud.loadAsset('assets/sounds/wurli/wurli_d.wav');
-  _preloadedSounds['wurli_e'] =
+  _preloadedSounds['note_e'] =
       await _soloud.loadAsset('assets/sounds/wurli/wurli_e.wav');
-  _preloadedSounds['wurli_f'] =
+  _preloadedSounds['notef_f'] =
       await _soloud.loadAsset('assets/sounds/wurli/wurli_f.wav');
-  _preloadedSounds['wurli_g'] =
+  _preloadedSounds['note_g'] =
       await _soloud.loadAsset('assets/sounds/wurli/wurli_g.wav');
-  _preloadedSounds['wurli_a'] =
+  _preloadedSounds['note_a'] =
       await _soloud.loadAsset('assets/sounds/wurli/wurli_a.wav');
-  _preloadedSounds['wurli_b'] =
+  _preloadedSounds['note_b'] =
       await _soloud.loadAsset('assets/sounds/wurli/wurli_b.wav');
-  _preloadedSounds['wurli_c_oc'] =
+  _preloadedSounds['note_c_oc'] =
       await _soloud.loadAsset('assets/sounds/wurli/wurli_c_oc.wav');
 }
 
 Future<void> _loadXylophoneSounds() async {
-  _preloadedSounds['xylo_c'] =
-      await _soloud.loadAsset('assets/sounds/xylo/xylo_c.wav');
-  _preloadedSounds['xylo_d'] =
-      await _soloud.loadAsset('assets/sounds/xylo/xylo_d.wav');
-  _preloadedSounds['xylo_e'] =
-      await _soloud.loadAsset('assets/sounds/xylo/xylo_e.wav');
-  _preloadedSounds['xylo_f'] =
-      await _soloud.loadAsset('assets/sounds/xylo/xylo_f.wav');
-  _preloadedSounds['xylo_g'] =
-      await _soloud.loadAsset('assets/sounds/xylo/xylo_g.wav');
-  _preloadedSounds['xylo_a'] =
-      await _soloud.loadAsset('assets/sounds/xylo/xylo_a.wav');
-  _preloadedSounds['xylo_b'] =
-      await _soloud.loadAsset('assets/sounds/xylo/xylo_b.wav');
-  _preloadedSounds['xylo_c_oc'] =
-      await _soloud.loadAsset('assets/sounds/xylo/xylo_c_oc.wav');
+  _preloadedSounds['note_c'] =
+      await _soloud.loadAsset('assets/sounds/xylophone/xylo_c.wav');
+  _preloadedSounds['note_d'] =
+      await _soloud.loadAsset('assets/sounds/xylophone/xylo_d.wav');
+  _preloadedSounds['note_e'] =
+      await _soloud.loadAsset('assets/sounds/xylophone/xylo_e.wav');
+  _preloadedSounds['note_f'] =
+      await _soloud.loadAsset('assets/sounds/xylophone/xylo_f.wav');
+  _preloadedSounds['note'] =
+      await _soloud.loadAsset('assets/sounds/xylophone/xylo_g.wav');
+  _preloadedSounds['note_a'] =
+      await _soloud.loadAsset('assets/sounds/xylophone/xylo_a.wav');
+  _preloadedSounds['note_b'] =
+      await _soloud.loadAsset('assets/sounds/xylophone/xylo_b.wav');
+  _preloadedSounds['note_c_oc'] =
+      await _soloud.loadAsset('assets/sounds/xylophone/xylo_c_oc.wav');
 }
 
 void applyInitialAudioEffects() {
