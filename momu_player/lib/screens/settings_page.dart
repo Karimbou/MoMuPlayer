@@ -107,7 +107,8 @@ class _SettingsPageState extends State<SettingsPage> {
             onSelectionChanged: (Set<SoundType> selection) {
               setState(() {
                 _selectedSound = selection.first;
-                switchInstrumentSounds(_selectedSound.toString())
+                String instrumentName = _selectedSound.name;
+                switchInstrumentSounds(instrumentName)
                     .then((_) => _log.info('Successfully switched instruments'))
                     .catchError((error) =>
                         _log.severe('Error switching instruments', error));

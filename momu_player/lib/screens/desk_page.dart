@@ -5,6 +5,9 @@ import 'package:momu_player/constants.dart';
 import 'package:momu_player/audio/audio_controller.dart';
 import 'settings_page.dart';
 import '../components/slider_layout.dart';
+import 'package:logging/logging.dart';
+
+final Logger _log = Logger('DeskPage'); // Add this line
 
 // Main DeskPage widget that serves as the primary screen for the sound pads
 class DeskPage extends StatefulWidget {
@@ -24,7 +27,7 @@ class DeskPage extends StatefulWidget {
 enum Filter { off, reverb, delay }
 
 class _DeskPageState extends State<DeskPage> {
-  double wetValue = 0.1; // Controls the intensity of the audio effect
+  double wetValue = 0.5; // Controls the intensity of the audio effect
   Filter selectedFilter = Filter.off; // Currently selected audio filter
 
   @override
@@ -46,23 +49,40 @@ class _DeskPageState extends State<DeskPage> {
 
   // Applies the selected filter with current wetValue
   void _applyFilter() {
-    switch (selectedFilter) {
-      case Filter.reverb:
-        // Apply reverb effect
-        widget.audioController.soloud.filters.freeverbFilter.wet.value =
-            wetValue;
-        widget.audioController.soloud.filters.echoFilter.wet.value = 0.0;
-        break;
-      case Filter.delay:
-        // Apply delay effect
-        widget.audioController.soloud.filters.echoFilter.wet.value = wetValue;
-        widget.audioController.soloud.filters.freeverbFilter.wet.value = 0.0;
-        break;
-      case Filter.off:
-        // Turn off all effects
-        widget.audioController.soloud.filters.freeverbFilter.wet.value = 0.0;
-        widget.audioController.soloud.filters.echoFilter.wet.value = 0.0;
-        break;
+    try {
+      switch (selectedFilter) {
+        case Filter.reverb:
+          // Apply stronger reverb effect
+          widget.audioController.soloud.filters.freeverbFilter.wet.value =
+              wetValue;
+          widget.audioController.soloud.filters.freeverbFilter.roomSize.value =
+              wetValue;
+          widget.audioController.soloud.filters.echoFilter.wet.value = 0.0;
+          _log.info('Applied reverb filter with intensity: $wetValue');
+          break;
+        case Filter.delay:
+          // Apply stronger delay effect
+          widget.audioController.soloud.filters.echoFilter.wet.value = wetValue;
+          widget.audioController.soloud.filters.echoFilter.delay.value =
+              wetValue * 0.5;
+          widget.audioController.soloud.filters.echoFilter.decay.value =
+              wetValue * 0.7;
+          widget.audioController.soloud.filters.freeverbFilter.wet.value = 0.0;
+          _log.info('Applied delay filter with intensity: $wetValue');
+          break;
+        case Filter.off:
+          // Completely turn off all effects
+          widget.audioController.soloud.filters.freeverbFilter.wet.value = 0.0;
+          widget.audioController.soloud.filters.freeverbFilter.roomSize.value =
+              0.0;
+          widget.audioController.soloud.filters.echoFilter.wet.value = 0.0;
+          widget.audioController.soloud.filters.echoFilter.delay.value = 0.0;
+          widget.audioController.soloud.filters.echoFilter.decay.value = 0.0;
+          _log.info('Disabled all filters');
+          break;
+      }
+    } catch (e) {
+      _log.severe('Failed to apply filter: $e');
     }
   }
 
