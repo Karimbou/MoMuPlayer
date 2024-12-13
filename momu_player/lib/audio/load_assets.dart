@@ -54,9 +54,9 @@ Future<void> switchInstrumentSounds(String instrumentType) async {
       case 'xylophone':
         _log.info('Loading Xylophone sounds...');
         await _loadXylophoneSounds();
-      case 'sound3':
-        _log.warning('Sound3 not implemented yet');
-        throw UnimplementedError('Sound3 not yet implemented');
+      case 'piano':
+        _log.info('Loading Piano Chords...');
+        await _loadPianoChords();
       case 'sound4':
         _log.warning('Sound4 not implemented yet');
         throw UnimplementedError('Sound4 not yet implemented');
@@ -125,6 +125,30 @@ Future<void> _loadXylophoneSounds() async {
         'Successfully loaded all xylophone sounds: ${_preloadedSounds.length} notes');
   } on Exception catch (e) {
     _log.severe('Failed to load xylophone sounds: $e');
+    rethrow;
+  }
+}
+
+Future<void> _loadPianoChords() async {
+  try {
+    _log.info('Starting to load Piano Chords...');
+
+    for (var note in ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc']) {
+      _log.fine('Loading Piano Chords: $note');
+      try {
+        _preloadedSounds['note_$note'] =
+            await _soloud.loadAsset('assets/sounds/piano/pianochord_$note.wav');
+        _log.fine('Successfully loaded Piano Chords note: $note');
+      } catch (e) {
+        _log.severe('Failed to load Piano Chords note $note: $e');
+        rethrow;
+      }
+    }
+
+    _log.info(
+        'Successfully loaded all Piano Chords: ${_preloadedSounds.length} notes');
+  } on Exception catch (e) {
+    _log.severe('Failed to load Piano Chords: $e');
     rethrow;
   }
 }

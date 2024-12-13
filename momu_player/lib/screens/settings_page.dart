@@ -174,8 +174,8 @@ class _SettingsPageState extends State<SettingsPage> {
               label: Text('Xylophone'),
             ),
             ButtonSegment<SoundType>(
-              value: SoundType.sound3,
-              label: Text('Sound 3'),
+              value: SoundType.piano,
+              label: Text('Piano'),
             ),
             ButtonSegment<SoundType>(
               value: SoundType.sound4,
@@ -231,4 +231,4 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-enum SoundType { wurli, xylophone, sound3, sound4 }
+enum SoundType { wurli, xylophone, piano, sound4 }
