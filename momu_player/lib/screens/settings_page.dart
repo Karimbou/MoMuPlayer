@@ -20,15 +20,17 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  // Constants
-  static const double minFilterValue = 0.001; // Changed from MIN_FILTER_VALUE
+  // This Constant is setting the minimum value for filter settings
+  static const double minFilterValue = 0.001;
 
-  // Filter state
-  double _reverbRoomSize = minFilterValue; // Updated reference
-  double _delayTime = minFilterValue; // Updated reference
-  double _delayDecay = minFilterValue; // Updated reference
+  // Here the state variables for the filter settings are set to there initial value
+  double _reverbRoomSize = minFilterValue;
+  double _delayTime = minFilterValue;
+  double _delayDecay = minFilterValue;
   SoundType _selectedSound = SoundType.wurli;
-
+// Here a functiion initState is defined to load firdt the Flutter's internal initialization with super and than
+// the current settings from the audio controller and update the state variables accordingly.
+// This method is called when the state of the widget is initialized.
   @override
   void initState() {
     super.initState();
@@ -49,11 +51,15 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final freeverbFilter =
           widget.audioController.soloud.filters.freeverbFilter;
+      // If the filter isn't already active, it will be activated here.
       if (!freeverbFilter.isActive) {
         freeverbFilter.activate();
       }
+      // Sets the virtual room size for the reverb effect
       freeverbFilter.roomSize.value = value;
+      // Sets the wet/dry mix of the effect (how much of the processed signal is mixed with the original)
       freeverbFilter.wet.value = value;
+
       _log.info('Updated reverb settings to: $value');
     } catch (e) {
       _log.severe('Failed to update reverb settings: $e');
@@ -63,22 +69,25 @@ class _SettingsPageState extends State<SettingsPage> {
   void _updateDelayFilter(double value, {bool isDecay = false}) {
     try {
       final echoFilter = widget.audioController.soloud.filters.echoFilter;
+
       if (!echoFilter.isActive) {
         echoFilter.activate();
       }
+
       if (isDecay) {
         echoFilter.decay.value = value;
       } else {
         echoFilter.delay.value = value;
         echoFilter.wet.value = value;
       }
+
       _log.info('Updated delay ${isDecay ? "decay" : "time"} to: $value');
     } catch (e) {
       _log.severe('Failed to update delay settings: $e');
     }
   }
 
-  // UI Building Methods
+  // UI Building Methods of the Sliders for the reverb and delay settings
   Widget _buildSliderSection(
       String label, double value, Function(double) onChanged) {
     return Column(
