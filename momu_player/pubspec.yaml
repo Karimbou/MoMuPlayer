@@ -33,6 +33,7 @@ flutter:
     - assets/sounds/
     - assets/sounds/wurli/
     - assets/sounds/xylophone/
+    - assets/sounds/piano/
   
   # fonts:
   #   - family: Schyler

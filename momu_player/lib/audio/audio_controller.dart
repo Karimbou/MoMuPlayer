@@ -143,8 +143,10 @@ class AudioController {
     }
   }
 
-  /// Start playing background music from the specified path
-  /// [musicPath] is the path to the music file
+  // Start playing background music from the specified path
+  // [musicPath] is the path to the music file
+  // The idea is to play the background music while the user interacts with the app.
+  // I will put some stems into the assets and use them as stems in the app.
   Future<void> startMusic(String musicPath) async {
     try {
       final source = await _soloud.loadAsset(musicPath);
