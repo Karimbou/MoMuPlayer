@@ -1,22 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:momu_player/audio/audio_controller.dart';
-import 'package:flutter_soloud/flutter_soloud.dart';
+import 'package:momu_player/controller/audio_controller.dart';
+import 'package:momu_player/controller/settings_controller.dart';
+import 'package:momu_player/model/settings_model.dart';
+import 'package:momu_player/ui/settings_widgets.dart';
+
 import 'package:momu_player/audio/load_assets.dart';
 import 'package:logging/logging.dart';
-import '../components/slider_layout.dart';
 
 final Logger _log = Logger('SettingsPage');
-
-class SettingsException implements Exception {
-  final String message;
-  final dynamic originalError;
-
-  SettingsException(this.message, [this.originalError]);
-
-  @override
-  String toString() =>
-      'SettingsException: $message${originalError != null ? ' (Original error: $originalError)' : ''}';
-}
 
 class SettingsPage extends StatefulWidget {
   final AudioController audioController;
@@ -31,37 +22,36 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  late final SettingsController _settingsController;
   double _reverbRoomSize = AudioController.minFilterValue;
   double _delayTime = AudioController.minFilterValue;
   double _delayDecay = AudioController.minFilterValue;
   SoundType _selectedSound = SoundType.wurli;
+
   @override
   void initState() {
     super.initState();
+    _settingsController = SettingsController(widget.audioController);
     _loadCurrentSettings();
   }
 
   void _loadCurrentSettings() {
     try {
-      final SoLoud soloud = widget.audioController.soloud;
-
-      final currentRoomSize = soloud.filters.freeverbFilter.roomSize.value;
-      final currentDelay = soloud.filters.echoFilter.delay.value;
-      final currentDecay = soloud.filters.echoFilter.decay.value;
+      final settings = _settingsController.getCurrentSettings();
+      final currentSound = widget.audioController.currentInstrument;
 
       setState(() {
-        _reverbRoomSize = currentRoomSize.clamp(
+        _selectedSound =
+            _settingsController.getSoundTypeFromString(currentSound);
+        _reverbRoomSize = settings['roomSize']!.clamp(
             AudioController.minFilterValue, AudioController.maxFilterValue);
-        _delayTime = currentDelay.clamp(
+        _delayTime = settings['delay']!.clamp(
             AudioController.minFilterValue, AudioController.maxFilterValue);
-        _delayDecay = currentDecay.clamp(
+        _delayDecay = settings['decay']!.clamp(
             AudioController.minFilterValue, AudioController.maxFilterValue);
       });
 
-      _log.fine('Settings loaded successfully - '
-          'Reverb: $_reverbRoomSize, '
-          'Delay: $_delayTime, '
-          'Decay: $_delayDecay');
+      _log.fine('Settings loaded successfully');
     } catch (e, stackTrace) {
       final error = e is SettingsException
           ? e
@@ -82,152 +72,24 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  void _updateReverbFilter(double value) {
-    try {
-      final freeverbFilter =
-          widget.audioController.soloud.filters.freeverbFilter;
-      if (!freeverbFilter.isActive) {
-        freeverbFilter.activate();
-      }
-      freeverbFilter.roomSize.value = value;
-      freeverbFilter.wet.value = value;
-
-      _log.info('Updated reverb settings to: $value');
-    } catch (e) {
-      _log.severe('Failed to update reverb settings: $e');
-    }
-  }
-
-  void _updateDelayFilter(double value, {bool isDecay = false}) {
-    try {
-      final echoFilter = widget.audioController.soloud.filters.echoFilter;
-
-      if (!echoFilter.isActive) {
-        echoFilter.activate();
-      }
-
-      if (isDecay) {
-        echoFilter.decay.value = value;
-      } else {
-        echoFilter.delay.value = value;
-        echoFilter.wet.value = value;
-      }
-
-      _log.info('Updated delay ${isDecay ? "decay" : "time"} to: $value');
-    } catch (e) {
-      _log.severe('Failed to update delay settings: $e');
-    }
-  }
-
-  Widget _buildSliderSection(
-      String label, double value, Function(double) onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 16),
-        ),
-        const SizedBox(height: 8),
-        SliderTheme(
-          data: getCustomSliderTheme(context),
-          child: Slider(
-            value: value,
-            min: AudioController.minFilterValue,
-            max: AudioController.maxFilterValue,
-            onChanged: (newValue) {
-              setState(() {
-                onChanged(newValue);
-              });
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReverbSettings() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'Reverb Settings',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        _buildSliderSection('Room Size', _reverbRoomSize, (value) {
-          _reverbRoomSize = value;
-          _updateReverbFilter(value);
-        }),
-      ],
-    );
-  }
-
-  Widget _buildDelaySettings() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'Delay Settings',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        _buildSliderSection('Delay Time', _delayTime, (value) {
-          _delayTime = value;
-          _updateDelayFilter(value);
-        }),
-        const SizedBox(height: 16),
-        _buildSliderSection('Decay', _delayDecay, (value) {
-          _delayDecay = value;
-          _updateDelayFilter(value, isDecay: true);
-        }),
-      ],
-    );
-  }
-
-  Widget _buildSoundSelection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'Sound Selection',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        SegmentedButton<SoundType>(
-          segments: const <ButtonSegment<SoundType>>[
-            ButtonSegment<SoundType>(
-              value: SoundType.wurli,
-              label: Text('Wurli'),
-            ),
-            ButtonSegment<SoundType>(
-              value: SoundType.xylophone,
-              label: Text('Xylophone'),
-            ),
-            ButtonSegment<SoundType>(
-              value: SoundType.piano,
-              label: Text('Piano'),
-            ),
-            ButtonSegment<SoundType>(
-              value: SoundType.sound4,
-              label: Text('Sound 4'),
-            ),
-          ],
-          selected: {_selectedSound},
-          onSelectionChanged: _handleSoundSelection,
-        ),
-      ],
-    );
-  }
-
   void _handleSoundSelection(Set<SoundType> selection) {
+    final previousRoomSize = _reverbRoomSize;
+    final previousDelayTime = _delayTime;
+    final previousDelayDecay = _delayDecay;
+
     setState(() {
       _selectedSound = selection.first;
       String instrumentName = _selectedSound.name;
-      switchInstrumentSounds(instrumentName)
-          .then((_) => _log.info('Successfully switched instruments'))
-          .catchError(
-              (error) => _log.severe('Error switching instruments', error));
+      switchInstrumentSounds(instrumentName).then((_) {
+        _settingsController.updateReverbFilter(previousRoomSize);
+        _settingsController.updateDelayFilter(previousDelayTime);
+        _settingsController.updateDelayFilter(previousDelayDecay,
+            isDecay: true);
+        _log.info('Successfully switched instruments and restored settings');
+      }).catchError((error) {
+        _log.severe('Error switching instruments', error);
+        return null;
+      });
     });
   }
 
@@ -237,11 +99,39 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildReverbSettings(),
+          SettingsWidgets.buildReverbSettings(
+            context, // Pass context
+            _reverbRoomSize,
+            (value) {
+              setState(() {
+                _reverbRoomSize = value;
+                _settingsController.updateReverbFilter(value);
+              });
+            },
+          ),
           const SizedBox(height: 32),
-          _buildDelaySettings(),
+          SettingsWidgets.buildDelaySettings(
+            context, // Pass context
+            _delayTime,
+            _delayDecay,
+            (value) {
+              setState(() {
+                _delayTime = value;
+                _settingsController.updateDelayFilter(value);
+              });
+            },
+            (value) {
+              setState(() {
+                _delayDecay = value;
+                _settingsController.updateDelayFilter(value, isDecay: true);
+              });
+            },
+          ),
           const SizedBox(height: 32),
-          _buildSoundSelection(),
+          SettingsWidgets.buildSoundSelection(
+            _selectedSound,
+            _handleSoundSelection,
+          ),
         ],
       ),
     );
@@ -261,5 +151,3 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
-
-enum SoundType { wurli, xylophone, piano, sound4 }

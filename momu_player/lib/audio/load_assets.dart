@@ -1,6 +1,6 @@
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:logging/logging.dart';
-import 'audio_controller.dart';
+import '../controller/audio_controller.dart';
 
 final Logger _log = Logger('LoadAssets');
 late final SoLoud _soloud;

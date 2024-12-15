@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:momu_player/components/sound_key.dart';
 import 'package:momu_player/constants.dart';
-import 'package:momu_player/audio/audio_controller.dart';
+import 'package:momu_player/controller/audio_controller.dart';
 import 'settings_page.dart';
 import '../components/slider_layout.dart';
 import 'package:logging/logging.dart';

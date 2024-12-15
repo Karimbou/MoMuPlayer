@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:logging/logging.dart';
-import 'load_assets.dart';
+import '../audio/load_assets.dart';
 
 class AudioControllerException implements Exception {
   final String message;
@@ -15,56 +15,69 @@ class AudioControllerException implements Exception {
 }
 
 class AudioController {
+  // CONSTANTS
   static final Logger _log = Logger('AudioController');
   static const double minFilterValue = 0.0;
   static const double maxFilterValue = 1.0;
-  late final SoLoud _soloud;
-  SoLoud get soloud => _soloud;
 
-  final Map<String, AudioSource> _preloadedSounds = {};
-
-  double _musicVolume = maxFilterValue;
-  bool _musicEnabled = true;
-  bool _soundEnabled = true;
-  SoundHandle? _currentMusicHandle;
-  String? _currentMusicPath;
-  Future<void>? _initializationFuture;
-  bool _isInitialized = false;
-
-  // Add default filter values
+  // Default filter values
   static const double defaultEchoWet = 0.3;
   static const double defaultEchoDelay = 0.2;
   static const double defaultEchoDecay = 0.3;
   static const double defaultReverbWet = 0.3;
   static const double defaultReverbRoomSize = 0.5;
 
-  // Add current filter value tracking
+  // PRIVATE FIELDS
+  late final SoLoud _soloud;
+  final Map<String, AudioSource> _preloadedSounds = {};
+
+  // State tracking
+  bool _isInitialized = false;
+  Future<void>? _initializationFuture;
+
+  // Music state
+  double _musicVolume = maxFilterValue;
+  bool _musicEnabled = true;
+  bool _soundEnabled = true;
+  SoundHandle? _currentMusicHandle;
+  String? _currentMusicPath;
+
+  // Filter state
   double _echoWet = defaultEchoWet;
   double _echoDelay = defaultEchoDelay;
   double _echoDecay = defaultEchoDecay;
   double _reverbWet = defaultReverbWet;
   double _reverbRoomSize = defaultReverbRoomSize;
 
-  // Add getters for filter values
+  // PUBLIC GETTERS
+  SoLoud get soloud => _soloud;
+
+  // State getters
+  bool get isInitialized => _isInitialized;
+  Future<void> get initialized => _initializationFuture ?? Future.value();
+
+  // Music getters
+  double get musicVolume => _musicVolume;
+  bool get isMusicEnabled => _musicEnabled;
+  bool get isSoundEnabled => _soundEnabled;
+  bool get isMusicPlaying => _currentMusicHandle != null;
+
+  // Filter getters
   double get echoWet => _echoWet;
   double get echoDelay => _echoDelay;
   double get echoDecay => _echoDecay;
   double get reverbWet => _reverbWet;
   double get reverbRoomSize => _reverbRoomSize;
 
-  double get musicVolume => _musicVolume;
-  bool get isMusicEnabled => _musicEnabled;
-  bool get isSoundEnabled => _soundEnabled;
-  bool get isMusicPlaying => _currentMusicHandle != null;
-  bool get isInitialized => _isInitialized;
+  String currentInstrument = 'wurli';
 
-  Future<void> get initialized => _initializationFuture ?? Future.value();
-
+  // CONSTRUCTOR
   AudioController() : _initializationFuture = null {
     _soloud = SoLoud.instance;
     _initializationFuture = initialize();
   }
 
+  // INITIALIZATION
   Future<void> initialize() async {
     try {
       if (_soloud.isInitialized) {
@@ -100,6 +113,7 @@ class AudioController {
     }
   }
 
+  // FILTER METHODS
   void applyReverbFilter(double intensity, {double? roomSize}) {
     try {
       if (!_soloud.isInitialized) {
@@ -169,7 +183,6 @@ class AudioController {
         _soloud.filters.echoFilter.deactivate();
       }
 
-      // Reset filter values to defaults
       _echoWet = defaultEchoWet;
       _echoDelay = defaultEchoDelay;
       _echoDecay = defaultEchoDecay;
@@ -182,6 +195,7 @@ class AudioController {
     }
   }
 
+  // PLAYBACK METHODS
   Future<void> playSound(String soundKey) async {
     if (!_isInitialized) {
       _log.warning('Trying to play sound before initialization');
@@ -226,6 +240,7 @@ class AudioController {
     }
   }
 
+  // CONTROL METHODS
   void setMusicVolume(double volume) {
     _musicVolume = volume.clamp(minFilterValue, maxFilterValue);
     if (_currentMusicHandle != null) {
@@ -246,6 +261,7 @@ class AudioController {
     _soundEnabled = !_soundEnabled;
   }
 
+  // CLEANUP
   Future<void> dispose() async {
     try {
       await stopMusic();
