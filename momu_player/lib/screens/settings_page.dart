@@ -7,6 +7,17 @@ import '../components/slider_layout.dart';
 
 final Logger _log = Logger('SettingsPage');
 
+class SettingsException implements Exception {
+  final String message;
+  final dynamic originalError;
+
+  SettingsException(this.message, [this.originalError]);
+
+  @override
+  String toString() =>
+      'SettingsException: $message${originalError != null ? ' (Original error: $originalError)' : ''}';
+}
+
 class SettingsPage extends StatefulWidget {
   final AudioController audioController;
 
@@ -20,44 +31,65 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  // This Constant is setting the minimum value for filter settings
-  static const double minFilterValue = 0.001;
-
-  // Here the state variables for the filter settings are set to there initial value
-  double _reverbRoomSize = minFilterValue;
-  double _delayTime = minFilterValue;
-  double _delayDecay = minFilterValue;
+  double _reverbRoomSize = AudioController.minFilterValue;
+  double _delayTime = AudioController.minFilterValue;
+  double _delayDecay = AudioController.minFilterValue;
   SoundType _selectedSound = SoundType.wurli;
-// Here a functiion initState is defined to load firdt the Flutter's internal initialization with super and than
-// the current settings from the audio controller and update the state variables accordingly.
-// This method is called when the state of the widget is initialized.
   @override
   void initState() {
     super.initState();
     _loadCurrentSettings();
   }
 
-  // Filter Management Methods
   void _loadCurrentSettings() {
-    final SoLoud soloud = widget.audioController.soloud;
-    setState(() {
-      _reverbRoomSize = soloud.filters.freeverbFilter.roomSize.value;
-      _delayTime = soloud.filters.echoFilter.delay.value;
-      _delayDecay = soloud.filters.echoFilter.decay.value;
-    });
+    try {
+      final SoLoud soloud = widget.audioController.soloud;
+
+      final currentRoomSize = soloud.filters.freeverbFilter.roomSize.value;
+      final currentDelay = soloud.filters.echoFilter.delay.value;
+      final currentDecay = soloud.filters.echoFilter.decay.value;
+
+      setState(() {
+        _reverbRoomSize = currentRoomSize.clamp(
+            AudioController.minFilterValue, AudioController.maxFilterValue);
+        _delayTime = currentDelay.clamp(
+            AudioController.minFilterValue, AudioController.maxFilterValue);
+        _delayDecay = currentDecay.clamp(
+            AudioController.minFilterValue, AudioController.maxFilterValue);
+      });
+
+      _log.fine('Settings loaded successfully - '
+          'Reverb: $_reverbRoomSize, '
+          'Delay: $_delayTime, '
+          'Decay: $_delayDecay');
+    } catch (e, stackTrace) {
+      final error = e is SettingsException
+          ? e
+          : SettingsException('Failed to load settings', e);
+      _log.severe('Settings loading error', error, stackTrace);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load settings: ${error.message}')),
+        );
+      }
+
+      setState(() {
+        _reverbRoomSize = AudioController.minFilterValue;
+        _delayTime = AudioController.minFilterValue;
+        _delayDecay = AudioController.minFilterValue;
+      });
+    }
   }
 
   void _updateReverbFilter(double value) {
     try {
       final freeverbFilter =
           widget.audioController.soloud.filters.freeverbFilter;
-      // If the filter isn't already active, it will be activated here.
       if (!freeverbFilter.isActive) {
         freeverbFilter.activate();
       }
-      // Sets the virtual room size for the reverb effect
       freeverbFilter.roomSize.value = value;
-      // Sets the wet/dry mix of the effect (how much of the processed signal is mixed with the original)
       freeverbFilter.wet.value = value;
 
       _log.info('Updated reverb settings to: $value');
@@ -87,7 +119,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // UI Building Methods of the Sliders for the reverb and delay settings
   Widget _buildSliderSection(
       String label, double value, Function(double) onChanged) {
     return Column(
@@ -102,8 +133,8 @@ class _SettingsPageState extends State<SettingsPage> {
           data: getCustomSliderTheme(context),
           child: Slider(
             value: value,
-            min: minFilterValue,
-            max: 1.0,
+            min: AudioController.minFilterValue,
+            max: AudioController.maxFilterValue,
             onChanged: (newValue) {
               setState(() {
                 onChanged(newValue);

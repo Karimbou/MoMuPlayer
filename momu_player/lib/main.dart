@@ -23,7 +23,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final audioController = AudioController();
-  await audioController.initializeSoLoud();
+  await audioController.initialize();
 
   runApp(
     MoMuPlayerApp(audioController: audioController),

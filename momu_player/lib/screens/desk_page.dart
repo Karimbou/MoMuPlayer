@@ -48,39 +48,24 @@ class _DeskPageState extends State<DeskPage> {
   }
 
   // Applies the selected filter with current wetValue
+  // Applies the selected filter with current wetValue
   void _applyFilter() {
     try {
-      const double minFilterValue = 0.001; // Minimum allowed value for filters
-
       switch (selectedFilter) {
         case Filter.reverb:
           // Apply reverb effect
-          widget.audioController.soloud.filters.freeverbFilter.wet.value =
-              wetValue;
-          widget.audioController.soloud.filters.freeverbFilter.roomSize.value =
-              wetValue;
-          widget.audioController.soloud.filters.echoFilter.wet.value =
-              minFilterValue;
+          widget.audioController.applyReverbFilter(wetValue);
           _log.info('Applied reverb filter with intensity: $wetValue');
           break;
         case Filter.delay:
           // Apply delay effect
-          widget.audioController.soloud.filters.echoFilter.wet.value = wetValue;
-          widget.audioController.soloud.filters.freeverbFilter.wet.value =
-              minFilterValue;
+          widget.audioController.applyDelayFilter(wetValue);
           _log.info('Applied delay filter with intensity: $wetValue');
           break;
         case Filter.off:
-          // Turn off all effects by setting them to minimum value instead of 0
-          widget.audioController.soloud.filters.freeverbFilter.wet.value =
-              minFilterValue;
-          widget.audioController.soloud.filters.freeverbFilter.roomSize.value =
-              minFilterValue;
-          widget.audioController.soloud.filters.echoFilter.wet.value =
-              minFilterValue;
-          widget.audioController.soloud.filters.echoFilter.delay.value =
-              minFilterValue;
-          _log.info('Set all filters to minimum value');
+          // Turn off all effects
+          widget.audioController.removeFilters();
+          _log.info('Removed all filters');
           break;
       }
     } catch (e) {
@@ -139,7 +124,7 @@ class _DeskPageState extends State<DeskPage> {
         style: const ButtonStyle().copyWith(
           textStyle: WidgetStatePropertyAll(
             TextStyle(
-              backgroundColor: Colors.yellowAccent.withOpacity(0.1),
+              backgroundColor: Colors.yellowAccent.withValues(alpha: 0.1),
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -150,7 +135,7 @@ class _DeskPageState extends State<DeskPage> {
             ),
           ),
           overlayColor: WidgetStatePropertyAll(
-            Colors.greenAccent.withOpacity(0.2),
+            Colors.greenAccent.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -183,8 +168,10 @@ class _DeskPageState extends State<DeskPage> {
         children: [
           Slider(
             value: wetValue,
-            min: 0.1,
-            max: 1.0,
+            min: AudioController
+                .minFilterValue, // Use constant from AudioController
+            max: AudioController
+                .maxFilterValue, // Use constant from AudioController
             onChanged: (double newValue) {
               setState(() {
                 wetValue = newValue;

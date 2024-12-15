@@ -6,173 +6,114 @@ import 'load_assets.dart';
 class AudioControllerException implements Exception {
   final String message;
   final dynamic originalError;
-  final StackTrace? stackTrace;
 
-  AudioControllerException(this.message, [this.originalError, this.stackTrace]);
+  AudioControllerException(this.message, [this.originalError]);
 
   @override
   String toString() =>
-      'AudioControllerException: $message${originalError != null ? '\nOriginal error: $originalError' : ''}${stackTrace != null ? '\nStackTrace: $stackTrace' : ''}';
+      'AudioControllerException: $message${originalError != null ? '\nOriginal error: $originalError' : ''}';
 }
 
 class AudioController {
-  static final Logger _log = Logger('AudioController')..level = Level.ALL;
+  static final Logger _log = Logger('AudioController');
+  static const double minFilterValue = 0.0;
+  static const double maxFilterValue = 1.0;
   late final SoLoud _soloud;
   SoLoud get soloud => _soloud;
+
   final Map<String, AudioSource> _preloadedSounds = {};
-  SoundHandle? _musicHandle;
-  Future<void>? _initializationFuture;
-  double _musicVolume = 1.0;
+
+  double _musicVolume = maxFilterValue;
   bool _musicEnabled = true;
   bool _soundEnabled = true;
   SoundHandle? _currentMusicHandle;
   String? _currentMusicPath;
+  Future<void>? _initializationFuture;
+  bool _isInitialized = false;
 
   double get musicVolume => _musicVolume;
   bool get isMusicEnabled => _musicEnabled;
   bool get isSoundEnabled => _soundEnabled;
   bool get isMusicPlaying => _currentMusicHandle != null;
-
-  AudioController() {
-    _soloud = SoLoud.instance;
-    _initializationFuture = _initialize();
-  }
-
-  Future<void> _initialize() async {
-    try {
-      _log.info('Initializing audio controller...');
-      if (_soloud.isInitialized) {
-        _log.warning('Audio controller is already initialized', null,
-            StackTrace.current);
-        return;
-      }
-
-      await initializeSoLoud();
-      _log.fine('SoLoud initialized successfully');
-
-      setupLoadAssets(_soloud, _preloadedSounds);
-      _log.fine('Asset setup completed');
-
-      await loadAssets();
-      _log.fine('Assets loaded successfully');
-
-      if (_preloadedSounds.isEmpty) {
-        throw AudioControllerException(
-            'No sounds were preloaded during initialization',
-            null,
-            StackTrace.current);
-      }
-
-      _log.info('Successfully loaded ${_preloadedSounds.length} sounds');
-    } catch (e, stackTrace) {
-      final error = e is SoLoudException
-          ? AudioControllerException(
-              'Failed to initialize audio engine', e, stackTrace)
-          : AudioControllerException(
-              'Unexpected error during initialization', e, stackTrace);
-      _log.severe(error.toString(), e, stackTrace);
-      rethrow;
-    }
-  }
+  bool get isInitialized => _isInitialized;
 
   Future<void> get initialized => _initializationFuture ?? Future.value();
 
-  Future<void> initializeSoLoud() async {
+  AudioController() : _initializationFuture = null {
+    _soloud = SoLoud.instance;
+    _initializationFuture = initialize();
+  }
+
+  Future<void> initialize() async {
     try {
+      if (_soloud.isInitialized) {
+        _log.warning('Audio controller is already initialized');
+        return;
+      }
+
       if (!_soloud.isInitialized) {
         await _soloud.init();
         _soloud.setVisualizationEnabled(false);
-        _soloud.setGlobalVolume(1.0);
+        _soloud.setGlobalVolume(maxFilterValue);
         _soloud.setMaxActiveVoiceCount(36);
-        _log.fine('SoLoud engine parameters configured successfully');
       }
-    } on SoLoudException catch (e, stackTrace) {
-      _log.severe('Failed to initialize audio controller', e, stackTrace);
-      rethrow;
-    }
-  }
 
-  Future<void> playSound(String soundKey) async {
-    if (!_soundEnabled) {
-      _log.fine('Sound playback skipped - sounds are disabled');
-      return;
-    }
+      setupLoadAssets(_soloud, _preloadedSounds);
+      await loadAssets();
 
-    try {
-      if (!_soloud.isInitialized) {
+      if (_preloadedSounds.isEmpty) {
         throw AudioControllerException(
-            'Audio controller is not initialized', null, StackTrace.current);
+            'No sounds were preloaded during initialization');
       }
 
-      await initialized;
-      final source = _preloadedSounds[soundKey];
-      if (source == null) {
-        throw AudioControllerException(
-            "Sound '$soundKey' not found. Available sounds: ${_preloadedSounds.keys.join(', ')}",
-            null,
-            StackTrace.current);
-      }
-      await _soloud.play(source);
-      _log.fine('Successfully played sound: $soundKey');
-    } catch (e, stackTrace) {
-      final error = e is AudioControllerException
-          ? e
+      _isInitialized = true;
+      _log.info('Successfully loaded ${_preloadedSounds.length} sounds');
+    } catch (e) {
+      _isInitialized = false;
+      final error = e is SoLoudException
+          ? AudioControllerException('Failed to initialize audio engine', e)
           : AudioControllerException(
-              "Failed to play sound '$soundKey'", e, stackTrace);
-      _log.severe(error.toString(), e, stackTrace);
+              'Unexpected error during initialization', e);
+      _log.severe(error.toString());
       rethrow;
-    }
-  }
-
-  Future<void> dispose() async {
-    _log.info('Disposing audio controller...');
-    try {
-      await stopMusic();
-
-      if (_musicHandle != null) {
-        await _soloud.stop(_musicHandle!);
-        _musicHandle = null;
-      }
-
-      removeFilters();
-
-      for (final source in _preloadedSounds.values) {
-        _soloud.disposeSource(source);
-      }
-      _preloadedSounds.clear();
-
-      if (_soloud.isInitialized) {
-        _soloud.deinit();
-      }
-      _log.info('Audio controller disposed successfully');
-    } catch (e, stackTrace) {
-      _log.severe('Error disposing audio controller', e, stackTrace);
     }
   }
 
   void applyReverbFilter(double intensity) {
     try {
+      if (!_soloud.isInitialized) {
+        _log.warning('Cannot apply reverb - audio controller not initialized');
+        return;
+      }
+
       if (!_soloud.filters.freeverbFilter.isActive) {
         _soloud.filters.freeverbFilter.activate();
       }
-      _soloud.filters.freeverbFilter.wet.value = intensity.clamp(0.0, 1.0);
-      _soloud.filters.freeverbFilter.roomSize.value = intensity.clamp(0.0, 1.0);
-      _log.fine('Applied reverb filter with intensity: $intensity');
-    } catch (e, stackTrace) {
-      _log.severe('Failed to apply reverb filter', e, stackTrace);
+      _soloud.filters.freeverbFilter.wet.value =
+          intensity.clamp(minFilterValue, maxFilterValue);
+      _soloud.filters.freeverbFilter.roomSize.value =
+          intensity.clamp(minFilterValue, maxFilterValue);
+    } catch (e) {
+      _log.severe('Failed to apply reverb filter', e);
     }
   }
 
   void applyDelayFilter(double intensity) {
     try {
+      if (!_soloud.isInitialized) {
+        _log.warning('Cannot apply delay - audio controller not initialized');
+        return;
+      }
+
       if (!_soloud.filters.echoFilter.isActive) {
         _soloud.filters.echoFilter.activate();
       }
-      _soloud.filters.echoFilter.wet.value = intensity.clamp(0.0, 1.0);
-      _soloud.filters.echoFilter.delay.value = intensity.clamp(0.0, 1.0);
-      _log.fine('Applied delay filter with intensity: $intensity');
-    } catch (e, stackTrace) {
-      _log.severe('Failed to apply delay filter', e, stackTrace);
+      _soloud.filters.echoFilter.wet.value =
+          intensity.clamp(minFilterValue, maxFilterValue);
+      _soloud.filters.echoFilter.delay.value =
+          intensity.clamp(minFilterValue, maxFilterValue);
+    } catch (e) {
+      _log.severe('Failed to apply delay filter', e);
     }
   }
 
@@ -184,64 +125,59 @@ class AudioController {
       if (_soloud.filters.echoFilter.isActive) {
         _soloud.filters.echoFilter.deactivate();
       }
-      _log.fine('All filters removed successfully');
-    } catch (e, stackTrace) {
-      _log.severe('Failed to remove filters', e, stackTrace);
+    } catch (e) {
+      _log.severe('Failed to remove filters', e);
+    }
+  }
+
+  Future<void> playSound(String soundKey) async {
+    if (!_isInitialized) {
+      _log.warning('Trying to play sound before initialization');
+      return;
+    }
+
+    if (!_soundEnabled) return;
+
+    try {
+      final source = _preloadedSounds[soundKey];
+      if (source == null) {
+        throw AudioControllerException(
+            "Sound '$soundKey' not found. Available sounds: ${_preloadedSounds.keys.join(', ')}");
+      }
+      _soloud.play(source);
+    } catch (e) {
+      _log.severe("Failed to play sound '$soundKey'", e);
     }
   }
 
   Future<void> startMusic(String musicPath, {bool loop = true}) async {
-    if (!_musicEnabled) {
-      _log.fine('Music playback skipped - music is disabled');
-      return;
-    }
+    if (!_musicEnabled) return;
 
     try {
       await stopMusic();
 
       final source = await _soloud.loadAsset(musicPath);
-      if (loop) {
-        _currentMusicHandle = await _soloud.play(source, looping: true);
-      } else {
-        _currentMusicHandle = await _soloud.play(source);
-      }
+      _currentMusicHandle = await _soloud.play(source, looping: loop);
       _currentMusicPath = musicPath;
-      await setMusicVolume(_musicVolume);
-      _log.fine('Started music: $musicPath (loop: $loop)');
-    } on SoLoudException catch (e, stackTrace) {
-      _log.severe("Cannot start music '$musicPath'.", e, stackTrace);
+      _soloud.setVolume(_currentMusicHandle!, _musicVolume);
+    } catch (e) {
+      _log.severe("Cannot start music '$musicPath'.", e);
       rethrow;
     }
   }
 
   Future<void> stopMusic() async {
     if (_currentMusicHandle != null) {
-      await _soloud.stop(_currentMusicHandle!);
+      _soloud.stop(_currentMusicHandle!);
       _currentMusicHandle = null;
       _currentMusicPath = null;
-      _log.fine('Stopped music playback');
     }
   }
 
-  Future<void> pauseMusic() async {
-    if (_currentMusicHandle != null) {
-      _soloud.setPause(_currentMusicHandle!, true);
-      _log.fine('Paused music playback');
-    }
-  }
-
-  Future<void> resumeMusic() async {
-    if (_currentMusicHandle != null) {
-      _soloud.setPause(_currentMusicHandle!, false);
-      _log.fine('Resumed music playback');
-    }
-  }
-
-  Future<void> setMusicVolume(double volume) async {
-    _musicVolume = volume.clamp(0.0, 1.0);
+  void setMusicVolume(double volume) {
+    _musicVolume = volume.clamp(minFilterValue, maxFilterValue);
     if (_currentMusicHandle != null) {
       _soloud.setVolume(_currentMusicHandle!, _musicVolume);
-      _log.fine('Set music volume to: $_musicVolume');
     }
   }
 
@@ -249,44 +185,31 @@ class AudioController {
     _musicEnabled = !_musicEnabled;
     if (!_musicEnabled) {
       stopMusic();
-      _log.fine('Music disabled');
     } else if (_currentMusicPath != null) {
       startMusic(_currentMusicPath!);
-      _log.fine('Music enabled - resuming previous track');
     }
   }
 
   void toggleSound() {
     _soundEnabled = !_soundEnabled;
-    _log.fine('Sound effects ${_soundEnabled ? 'enabled' : 'disabled'}');
   }
 
-  Future<void> fadeOutMusic({double durationInSeconds = 1.0}) async {
-    if (_currentMusicHandle != null) {
-      _soloud.fadeVolume(_currentMusicHandle!, 0.0,
-          Duration(milliseconds: (durationInSeconds * 1000).round()));
-      await Future.delayed(
-          Duration(milliseconds: (durationInSeconds * 1000).round()));
+  Future<void> dispose() async {
+    try {
       await stopMusic();
-      _log.fine('Completed music fade out over $durationInSeconds seconds');
-    }
-  }
 
-  Future<void> fadeInMusic(String musicPath,
-      {double durationInSeconds = 1.0}) async {
-    if (!_musicEnabled) {
-      _log.fine('Music fade-in skipped - music is disabled');
-      return;
-    }
+      for (final source in _preloadedSounds.values) {
+        _soloud.disposeSource(source);
+      }
+      _preloadedSounds.clear();
 
-    await startMusic(musicPath);
-    if (_currentMusicHandle != null) {
-      _soloud.setVolume(_currentMusicHandle!, 0.0);
-      _soloud.fadeVolume(_currentMusicHandle!, _musicVolume,
-          Duration(milliseconds: (durationInSeconds * 1000).round()));
-      await Future.delayed(
-          Duration(milliseconds: (durationInSeconds * 1000).round()));
-      _log.fine('Completed music fade in over $durationInSeconds seconds');
+      if (_soloud.isInitialized) {
+        _soloud.deinit();
+      }
+
+      _isInitialized = false;
+    } catch (e) {
+      _log.severe('Error disposing audio controller', e);
     }
   }
 }
