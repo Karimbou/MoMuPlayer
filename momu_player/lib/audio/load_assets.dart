@@ -1,8 +1,8 @@
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:logging/logging.dart';
-import 'audio_controller.dart'; // Add this import
+import 'audio_controller.dart';
 
-final Logger _log = Logger('AudioController');
+final Logger _log = Logger('LoadAssets');
 late final SoLoud _soloud;
 late final Map<String, AudioSource> _preloadedSounds;
 
@@ -86,17 +86,26 @@ Future<void> _loadWurlitzerSounds() async {
   try {
     _log.info('Starting to load wurlitzer sounds...');
 
-    for (var note in ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc']) {
+    // Create a list of futures to load all sounds concurrently
+    final futures =
+        ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'].map((note) async {
       _log.fine('Loading wurlitzer note: $note');
       try {
-        _preloadedSounds['note_$note'] =
-            await _soloud.loadAsset('assets/sounds/wurli/wurli_$note.wav');
+        // Set shouldStream to false for small sound files to load them entirely into memory
+        // Load the sound file into memory
+        // Load the sound file into memory
+        _preloadedSounds['note_$note'] = await _soloud.loadAsset(
+          'assets/sounds/wurli/wurli_$note.wav',
+        );
         _log.fine('Successfully loaded wurlitzer note: $note');
       } catch (e) {
         _log.severe('Failed to load wurlitzer note $note: $e');
         rethrow;
       }
-    }
+    });
+
+    // Wait for all sounds to load concurrently
+    await Future.wait(futures);
 
     _log.info(
         'Successfully loaded all wurlitzer sounds: ${_preloadedSounds.length} notes');
@@ -106,21 +115,26 @@ Future<void> _loadWurlitzerSounds() async {
   }
 }
 
+// Apply the same pattern to _loadXylophoneSounds and _loadPianoChords
 Future<void> _loadXylophoneSounds() async {
   try {
     _log.info('Starting to load xylophone sounds...');
 
-    for (var note in ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc']) {
+    final futures =
+        ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'].map((note) async {
       _log.fine('Loading xylophone note: $note');
       try {
-        _preloadedSounds['note_$note'] =
-            await _soloud.loadAsset('assets/sounds/xylophone/xylo_$note.wav');
+        _preloadedSounds['note_$note'] = await _soloud.loadAsset(
+          'assets/sounds/xylophone/xylo_$note.wav',
+        );
         _log.fine('Successfully loaded xylophone note: $note');
       } catch (e) {
         _log.severe('Failed to load xylophone note $note: $e');
         rethrow;
       }
-    }
+    });
+
+    await Future.wait(futures);
 
     _log.info(
         'Successfully loaded all xylophone sounds: ${_preloadedSounds.length} notes');
@@ -134,17 +148,21 @@ Future<void> _loadPianoChords() async {
   try {
     _log.info('Starting to load Piano Chords...');
 
-    for (var note in ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc']) {
+    final futures =
+        ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'].map((note) async {
       _log.fine('Loading Piano Chords: $note');
       try {
-        _preloadedSounds['note_$note'] =
-            await _soloud.loadAsset('assets/sounds/piano/pianochord_$note.wav');
+        _preloadedSounds['note_$note'] = await _soloud.loadAsset(
+          'assets/sounds/piano/pianochord_$note.wav',
+        );
         _log.fine('Successfully loaded Piano Chords note: $note');
       } catch (e) {
         _log.severe('Failed to load Piano Chords note $note: $e');
         rethrow;
       }
-    }
+    });
+
+    await Future.wait(futures);
 
     _log.info(
         'Successfully loaded all Piano Chords: ${_preloadedSounds.length} notes');
