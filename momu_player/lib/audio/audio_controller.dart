@@ -31,6 +31,27 @@ class AudioController {
   Future<void>? _initializationFuture;
   bool _isInitialized = false;
 
+  // Add default filter values
+  static const double defaultEchoWet = 0.3;
+  static const double defaultEchoDelay = 0.2;
+  static const double defaultEchoDecay = 0.3;
+  static const double defaultReverbWet = 0.3;
+  static const double defaultReverbRoomSize = 0.5;
+
+  // Add current filter value tracking
+  double _echoWet = defaultEchoWet;
+  double _echoDelay = defaultEchoDelay;
+  double _echoDecay = defaultEchoDecay;
+  double _reverbWet = defaultReverbWet;
+  double _reverbRoomSize = defaultReverbRoomSize;
+
+  // Add getters for filter values
+  double get echoWet => _echoWet;
+  double get echoDelay => _echoDelay;
+  double get echoDecay => _echoDecay;
+  double get reverbWet => _reverbWet;
+  double get reverbRoomSize => _reverbRoomSize;
+
   double get musicVolume => _musicVolume;
   bool get isMusicEnabled => _musicEnabled;
   bool get isSoundEnabled => _soundEnabled;
@@ -79,52 +100,83 @@ class AudioController {
     }
   }
 
-  void applyReverbFilter(double intensity) {
+  void applyReverbFilter(double intensity, {double? roomSize}) {
     try {
       if (!_soloud.isInitialized) {
         _log.warning('Cannot apply reverb - audio controller not initialized');
         return;
       }
 
+      _reverbWet = intensity.clamp(minFilterValue, maxFilterValue);
+      _reverbRoomSize =
+          (roomSize ?? intensity).clamp(minFilterValue, maxFilterValue);
+
       if (!_soloud.filters.freeverbFilter.isActive) {
         _soloud.filters.freeverbFilter.activate();
       }
-      _soloud.filters.freeverbFilter.wet.value =
-          intensity.clamp(minFilterValue, maxFilterValue);
-      _soloud.filters.freeverbFilter.roomSize.value =
-          intensity.clamp(minFilterValue, maxFilterValue);
+      _soloud.filters.freeverbFilter.wet.value = _reverbWet;
+      _soloud.filters.freeverbFilter.roomSize.value = _reverbRoomSize;
     } catch (e) {
       _log.severe('Failed to apply reverb filter', e);
     }
   }
 
-  void applyDelayFilter(double intensity) {
+  void applyDelayFilter(double intensity, {double? delay, double? decay}) {
     try {
       if (!_soloud.isInitialized) {
         _log.warning('Cannot apply delay - audio controller not initialized');
         return;
       }
 
+      _echoWet = intensity.clamp(minFilterValue, maxFilterValue);
+      _echoDelay = (delay ?? intensity).clamp(minFilterValue, maxFilterValue);
+      _echoDecay =
+          (decay ?? defaultEchoDecay).clamp(minFilterValue, maxFilterValue);
+
       if (!_soloud.filters.echoFilter.isActive) {
         _soloud.filters.echoFilter.activate();
       }
-      _soloud.filters.echoFilter.wet.value =
-          intensity.clamp(minFilterValue, maxFilterValue);
-      _soloud.filters.echoFilter.delay.value =
-          intensity.clamp(minFilterValue, maxFilterValue);
+      _soloud.filters.echoFilter.wet.value = _echoWet;
+      _soloud.filters.echoFilter.delay.value = _echoDelay;
+      _soloud.filters.echoFilter.decay.value = _echoDecay;
     } catch (e) {
       _log.severe('Failed to apply delay filter', e);
     }
   }
 
+  void resetFiltersToDefault() {
+    try {
+      applyDelayFilter(defaultEchoWet,
+          delay: defaultEchoDelay, decay: defaultEchoDecay);
+      applyReverbFilter(defaultReverbWet, roomSize: defaultReverbRoomSize);
+    } catch (e) {
+      _log.severe('Failed to reset filters to default', e);
+    }
+  }
+
   void removeFilters() {
     try {
+      if (!_soloud.isInitialized) {
+        _log.warning(
+            'Cannot remove filters - audio controller not initialized');
+        return;
+      }
+
       if (_soloud.filters.freeverbFilter.isActive) {
         _soloud.filters.freeverbFilter.deactivate();
       }
       if (_soloud.filters.echoFilter.isActive) {
         _soloud.filters.echoFilter.deactivate();
       }
+
+      // Reset filter values to defaults
+      _echoWet = defaultEchoWet;
+      _echoDelay = defaultEchoDelay;
+      _echoDecay = defaultEchoDecay;
+      _reverbWet = defaultReverbWet;
+      _reverbRoomSize = defaultReverbRoomSize;
+
+      _log.info('Successfully removed all filters');
     } catch (e) {
       _log.severe('Failed to remove filters', e);
     }

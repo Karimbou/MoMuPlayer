@@ -1,5 +1,6 @@
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:logging/logging.dart';
+import 'audio_controller.dart'; // Add this import
 
 final Logger _log = Logger('AudioController');
 late final SoLoud _soloud;
@@ -172,13 +173,14 @@ void applyInitialAudioEffects() {
     _soloud.filters.freeverbFilter.activate();
 
     _log.info('Setting filter values...');
-    // Set the filter values
-    _soloud.filters.echoFilter.wet.value = 0.3;
-    _soloud.filters.echoFilter.delay.value = 0.2;
-    _soloud.filters.echoFilter.decay.value = 0.3;
+    // Set the filter values using AudioController defaults
+    _soloud.filters.echoFilter.wet.value = AudioController.defaultEchoWet;
+    _soloud.filters.echoFilter.delay.value = AudioController.defaultEchoDelay;
+    _soloud.filters.echoFilter.decay.value = AudioController.defaultEchoDecay;
 
-    _soloud.filters.freeverbFilter.wet.value = 0.3;
-    _soloud.filters.freeverbFilter.roomSize.value = 0.5;
+    _soloud.filters.freeverbFilter.wet.value = AudioController.defaultReverbWet;
+    _soloud.filters.freeverbFilter.roomSize.value =
+        AudioController.defaultReverbRoomSize;
 
     _log.info('Successfully applied initial audio effects');
   } catch (e) {
