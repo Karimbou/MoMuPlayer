@@ -3,8 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:momu_player/screens/desk_page.dart';
-
-import 'audio/audio_controller.dart';
+import 'controller/audio_controller.dart';
 import 'constants.dart';
 
 void main() async {
@@ -24,7 +23,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final audioController = AudioController();
-  await audioController.initializeSoLoud();
+  await audioController.initialize();
 
   runApp(
     MoMuPlayerApp(audioController: audioController),

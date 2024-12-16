@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:momu_player/components/sound_key.dart';
 import 'package:momu_player/constants.dart';
-import 'package:momu_player/audio/audio_controller.dart';
+import 'package:momu_player/controller/audio_controller.dart';
 import 'settings_page.dart';
 import '../components/slider_layout.dart';
 import 'package:logging/logging.dart';
@@ -48,37 +48,24 @@ class _DeskPageState extends State<DeskPage> {
   }
 
   // Applies the selected filter with current wetValue
+  // Applies the selected filter with current wetValue
   void _applyFilter() {
     try {
       switch (selectedFilter) {
         case Filter.reverb:
-          // Apply stronger reverb effect
-          widget.audioController.soloud.filters.freeverbFilter.wet.value =
-              wetValue;
-          widget.audioController.soloud.filters.freeverbFilter.roomSize.value =
-              wetValue;
-          widget.audioController.soloud.filters.echoFilter.wet.value = 0.0;
+          // Apply reverb effect
+          widget.audioController.applyReverbFilter(wetValue);
           _log.info('Applied reverb filter with intensity: $wetValue');
           break;
         case Filter.delay:
-          // Apply stronger delay effect
-          widget.audioController.soloud.filters.echoFilter.wet.value = wetValue;
-          widget.audioController.soloud.filters.echoFilter.delay.value =
-              wetValue * 0.5;
-          widget.audioController.soloud.filters.echoFilter.decay.value =
-              wetValue * 0.7;
-          widget.audioController.soloud.filters.freeverbFilter.wet.value = 0.0;
+          // Apply delay effect
+          widget.audioController.applyDelayFilter(wetValue);
           _log.info('Applied delay filter with intensity: $wetValue');
           break;
         case Filter.off:
-          // Completely turn off all effects
-          widget.audioController.soloud.filters.freeverbFilter.wet.value = 0.0;
-          widget.audioController.soloud.filters.freeverbFilter.roomSize.value =
-              0.0;
-          widget.audioController.soloud.filters.echoFilter.wet.value = 0.0;
-          widget.audioController.soloud.filters.echoFilter.delay.value = 0.0;
-          widget.audioController.soloud.filters.echoFilter.decay.value = 0.0;
-          _log.info('Disabled all filters');
+          // Turn off all effects
+          widget.audioController.removeFilters();
+          _log.info('Removed all filters');
           break;
       }
     } catch (e) {
@@ -137,7 +124,7 @@ class _DeskPageState extends State<DeskPage> {
         style: const ButtonStyle().copyWith(
           textStyle: WidgetStatePropertyAll(
             TextStyle(
-              backgroundColor: Colors.yellowAccent.withOpacity(0.1),
+              backgroundColor: Colors.yellowAccent.withValues(alpha: 0.1),
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -148,7 +135,7 @@ class _DeskPageState extends State<DeskPage> {
             ),
           ),
           overlayColor: WidgetStatePropertyAll(
-            Colors.greenAccent.withOpacity(0.2),
+            Colors.greenAccent.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -181,8 +168,10 @@ class _DeskPageState extends State<DeskPage> {
         children: [
           Slider(
             value: wetValue,
-            min: 0.1,
-            max: 1.0,
+            min: AudioController
+                .minFilterValue, // Use constant from AudioController
+            max: AudioController
+                .maxFilterValue, // Use constant from AudioController
             onChanged: (double newValue) {
               setState(() {
                 wetValue = newValue;
