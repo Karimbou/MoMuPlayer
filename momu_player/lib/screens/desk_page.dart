@@ -5,7 +5,7 @@ import 'package:momu_player/constants.dart';
 import 'package:momu_player/controller/audio_controller.dart';
 import 'settings_page.dart';
 import '../components/slider_layout.dart';
-import 'package:momu_player/components/segmentedButton_layout.dart';
+import 'package:momu_player/components/segmentedbutton_layout.dart';
 import 'package:logging/logging.dart';
 
 final Logger _log = Logger('DeskPage'); // Add this line

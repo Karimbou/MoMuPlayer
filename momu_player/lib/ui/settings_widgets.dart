@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:momu_player/controller/audio_controller.dart';
 import 'package:momu_player/model/settings_model.dart';
-import '../components/segmentedButton_layout.dart';
+import '../components/segmentedbutton_layout.dart';
 import '../components/slider_layout.dart';
 
 class SettingsWidgets {
