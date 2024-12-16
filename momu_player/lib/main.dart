@@ -23,7 +23,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final audioController = AudioController();
-  // Make sures to await until the Audio Contoler is initialized
+  // Make sures to await until the Audio Contoller is initialized
   await audioController.initialized;
 
   runApp(
