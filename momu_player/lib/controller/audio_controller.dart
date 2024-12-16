@@ -85,13 +85,17 @@ class AudioController {
         return;
       }
 
+      _log.info('Starting audio controller initialization...');
+
       if (!_soloud.isInitialized) {
         await _soloud.init();
+        _log.info('SoLoud engine initialized');
         _soloud.setVisualizationEnabled(false);
         _soloud.setGlobalVolume(maxFilterValue);
         _soloud.setMaxActiveVoiceCount(36);
       }
 
+      _log.info('Setting up and loading assets...');
       setupLoadAssets(_soloud, _preloadedSounds);
       await loadAssets();
 
@@ -197,10 +201,8 @@ class AudioController {
 
   // PLAYBACK METHODS
   Future<void> playSound(String soundKey) async {
-    if (!_isInitialized) {
-      _log.warning('Trying to play sound before initialization');
-      return;
-    }
+    // Wait for initialization to complete
+    await initialized;
 
     if (!_soundEnabled) return;
 
