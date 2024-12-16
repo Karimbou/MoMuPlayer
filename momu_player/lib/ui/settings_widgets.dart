@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:momu_player/controller/audio_controller.dart';
 import 'package:momu_player/model/settings_model.dart';
+import '../components/segmentedButton_layout.dart';
 import '../components/slider_layout.dart';
 
 class SettingsWidgets {
@@ -74,7 +75,9 @@ class SettingsWidgets {
   }
 
   static Widget buildSoundSelection(
-      SoundType selectedSound, Function(Set<SoundType>) onSelectionChanged) {
+      BuildContext context, // Add context parameter
+      SoundType selectedSound,
+      Function(Set<SoundType>) onSelectionChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -83,27 +86,30 @@ class SettingsWidgets {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        SegmentedButton<SoundType>(
-          segments: const <ButtonSegment<SoundType>>[
-            ButtonSegment<SoundType>(
-              value: SoundType.wurli,
-              label: Text('Wurli'),
-            ),
-            ButtonSegment<SoundType>(
-              value: SoundType.xylophone,
-              label: Text('Xylophone'),
-            ),
-            ButtonSegment<SoundType>(
-              value: SoundType.piano,
-              label: Text('Piano'),
-            ),
-            ButtonSegment<SoundType>(
-              value: SoundType.sound4,
-              label: Text('Sound 4'),
-            ),
-          ],
-          selected: {selectedSound},
-          onSelectionChanged: onSelectionChanged,
+        SegmentedButtonTheme(
+          data: segmentedButtonLayout(context),
+          child: SegmentedButton<SoundType>(
+            segments: const <ButtonSegment<SoundType>>[
+              ButtonSegment<SoundType>(
+                value: SoundType.wurli,
+                label: Text('Wurli'),
+              ),
+              ButtonSegment<SoundType>(
+                value: SoundType.xylophone,
+                label: Text('Xylophone'),
+              ),
+              ButtonSegment<SoundType>(
+                value: SoundType.piano,
+                label: Text('Piano'),
+              ),
+              ButtonSegment<SoundType>(
+                value: SoundType.sound4,
+                label: Text('Sound 4'),
+              ),
+            ],
+            selected: {selectedSound},
+            onSelectionChanged: onSelectionChanged,
+          ),
         ),
       ],
     );

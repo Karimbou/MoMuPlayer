@@ -3,7 +3,6 @@ import 'package:momu_player/controller/audio_controller.dart';
 import 'package:momu_player/controller/settings_controller.dart';
 import 'package:momu_player/model/settings_model.dart';
 import 'package:momu_player/ui/settings_widgets.dart';
-
 import 'package:momu_player/audio/load_assets.dart';
 import 'package:logging/logging.dart';
 
@@ -50,7 +49,6 @@ class _SettingsPageState extends State<SettingsPage> {
         _delayDecay = settings['decay']!.clamp(
             AudioController.minFilterValue, AudioController.maxFilterValue);
       });
-
       _log.fine('Settings loaded successfully');
     } catch (e, stackTrace) {
       final error = e is SettingsException
@@ -73,6 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _handleSoundSelection(Set<SoundType> selection) {
+    if (selection.isEmpty) return;
     final previousRoomSize = _reverbRoomSize;
     final previousDelayTime = _delayTime;
     final previousDelayDecay = _delayDecay;
@@ -100,7 +99,7 @@ class _SettingsPageState extends State<SettingsPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SettingsWidgets.buildReverbSettings(
-            context, // Pass context
+            context,
             _reverbRoomSize,
             (value) {
               setState(() {
@@ -111,7 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 32),
           SettingsWidgets.buildDelaySettings(
-            context, // Pass context
+            context,
             _delayTime,
             _delayDecay,
             (value) {
@@ -129,6 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 32),
           SettingsWidgets.buildSoundSelection(
+            context,
             _selectedSound,
             _handleSoundSelection,
           ),
