@@ -13,29 +13,106 @@ void setupLoadAssets(SoLoud soloud, Map<String, AudioSource> preloadedSounds) {
 
 Future<void> loadAssets() async {
   try {
-    _preloadedSounds['note_c'] =
-        await _soloud.loadAsset('assets/sounds/wurli/wurli_c.wav');
-    _preloadedSounds['note_d'] =
-        await _soloud.loadAsset('assets/sounds/wurli/wurli_d.wav');
-    _preloadedSounds['note_e'] =
-        await _soloud.loadAsset('assets/sounds/wurli/wurli_e.wav');
-    _preloadedSounds['note_f'] =
-        await _soloud.loadAsset('assets/sounds/wurli/wurli_f.wav');
-    _preloadedSounds['note_g'] =
-        await _soloud.loadAsset('assets/sounds/wurli/wurli_g.wav');
-    _preloadedSounds['note_a'] =
-        await _soloud.loadAsset('assets/sounds/wurli/wurli_a.wav');
-    _preloadedSounds['note_b'] =
-        await _soloud.loadAsset('assets/sounds/wurli/wurli_b.wav');
-    _preloadedSounds['note_c_oc'] =
-        await _soloud.loadAsset('assets/sounds/wurli/wurli_c_oc.wav');
+    _log.info('Starting to load audio assets...');
+    int loadedCount = 0;
+    const totalAssets = 8; // Total number of assets to load
+
+    // Load each sound with individual try-catch blocks
+    try {
+      _log.fine('Loading wurli_c.wav...');
+      _preloadedSounds['note_c'] =
+          await _soloud.loadAsset('assets/sounds/wurli/wurli_c.wav');
+      loadedCount++;
+
+      _log.fine('Successfully loaded wurli_c.wav');
+    } catch (e) {
+      _log.severe('Failed to load wurli_c.wav', e);
+      rethrow;
+    }
+
+    try {
+      _log.fine('Loading wurli_d.wav...');
+      _preloadedSounds['note_d'] =
+          await _soloud.loadAsset('assets/sounds/wurli/wurli_d.wav');
+      loadedCount++;
+
+      _log.fine('Successfully loaded wurli_d.wav');
+    } catch (e) {
+      _log.severe('Failed to load wurli_d.wav', e);
+      rethrow;
+    }
+
+    try {
+      _log.fine('Loading wurli_e.wav...');
+      _preloadedSounds['note_e'] =
+          await _soloud.loadAsset('assets/sounds/wurli/wurli_e.wav');
+      loadedCount++;
+
+      _log.fine('Successfully loaded wurli_e.wav');
+    } catch (e) {
+      _log.severe('Failed to load wurli_e.wav', e);
+      rethrow;
+    }
+
+    try {
+      _log.fine('Loading wurli_f.wav...');
+      _preloadedSounds['note_f'] =
+          await _soloud.loadAsset('assets/sounds/wurli/wurli_f.wav');
+      loadedCount++;
+      _log.fine('Successfully loaded wurli_f.wav');
+    } catch (e) {
+      _log.severe('Failed to load wurli_f.wav', e);
+      rethrow;
+    }
+
+    try {
+      _log.fine('Loading wurli_g.wav...');
+      _preloadedSounds['note_g'] =
+          await _soloud.loadAsset('assets/sounds/wurli/wurli_g.wav');
+      loadedCount++;
+
+      _log.fine('Successfully loaded wurli_g.wav');
+    } catch (e) {
+      _log.severe('Failed to load wurli_g.wav', e);
+      rethrow;
+    }
+
+    try {
+      _log.fine('Loading wurli_a.wav...');
+      _preloadedSounds['note_a'] =
+          await _soloud.loadAsset('assets/sounds/wurli/wurli_a.wav');
+      loadedCount++;
+      _log.fine('Successfully loaded wurli_a.wav');
+    } catch (e) {
+      _log.severe('Failed to load wurli_a.wav', e);
+      rethrow;
+    }
+
+    try {
+      _log.fine('Loading wurli_b.wav...');
+      _preloadedSounds['note_b'] =
+          await _soloud.loadAsset('assets/sounds/wurli/wurli_b.wav');
+      loadedCount++;
+      _log.fine('Successfully loaded wurli_b.wav');
+    } catch (e) {
+      _log.severe('Failed to load wurli_b.wav', e);
+      rethrow;
+    }
+    try {
+      _log.fine('Loading wurli_c_oc.wav...');
+      _preloadedSounds['note_c-oc'] =
+          await _soloud.loadAsset('assets/sounds/wurli/wurli_c_oc.wav');
+      loadedCount++;
+      _log.fine('Successfully loaded wurli_c_oc.wav');
+    } catch (e) {
+      _log.severe('Failed to load wurli_c_oc.wav', e);
+      rethrow;
+    }
 
     _log.info(
-        'Successfully loaded ${_preloadedSounds.length} sounds: ${_preloadedSounds.keys.join(', ')}');
-
-    applyInitialAudioEffects();
-  } on SoLoudException catch (e) {
-    _log.severe('Failed to load assets into memory', e);
+        'Successfully loaded all audio assets ($loadedCount/$totalAssets)');
+  } catch (e) {
+    _log.severe('Failed to load audio assets', e);
     rethrow;
   }
 }

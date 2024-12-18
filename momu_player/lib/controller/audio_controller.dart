@@ -19,6 +19,8 @@ class AudioController {
   static final Logger _log = Logger('AudioController');
   static const double minFilterValue = 0.0;
   static const double maxFilterValue = 1.0;
+  static const int initializationTimeoutSeconds =
+      30; // Increased from 10 to 30 seconds
 
   // Default filter values
   static const double defaultEchoWet = 0.3;
@@ -78,6 +80,7 @@ class AudioController {
   }
 
   // INITIALIZATION
+
   Future<void> initialize() async {
     try {
       if (_isInitialized) {
@@ -87,36 +90,52 @@ class AudioController {
 
       _log.info('Starting audio controller initialization...');
 
-      if (_soloud.isInitialized) {
-        _log.warning('SoLoud engine is already initialized');
-        return;
-      }
-
-      await _soloud.init();
-      _log.info('SoLoud engine initialized');
-      _soloud.setVisualizationEnabled(false);
-      _soloud.setGlobalVolume(maxFilterValue);
-      _soloud.setMaxActiveVoiceCount(36);
-
-      _log.info('Setting up and loading assets...');
-      setupLoadAssets(_soloud, _preloadedSounds);
-      await loadAssets();
-
-      if (_preloadedSounds.isEmpty) {
-        throw AudioControllerException(
-            'No sounds were preloaded during initialization');
-      }
-
-      _isInitialized = true;
-      _log.info('Successfully loaded ${_preloadedSounds.length} sounds');
+      return await Future.any([
+        _initializeImpl(),
+        Future.delayed(const Duration(seconds: initializationTimeoutSeconds))
+            .then((_) {
+          throw AudioControllerException(
+              'Initialization timed out after $initializationTimeoutSeconds seconds');
+        }),
+      ]);
     } catch (e) {
       _isInitialized = false;
-      final error = e is SoLoudException
-          ? AudioControllerException('Failed to initialize audio engine', e)
+      final error = e is AudioControllerException
+          ? e
           : AudioControllerException(
-              'Unexpected error during initialization', e);
+              'Failed to initialize audio controller', e);
       _log.severe(error.toString());
       rethrow;
+    }
+  }
+
+  Future<void> _initializeImpl() async {
+    // Move existing initialization code here
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (_soloud.isInitialized) {
+      _log.warning('SoLoud engine is already initialized');
+      return;
+    }
+
+    try {
+      await _soloud.init();
+    } catch (e) {
+      throw AudioControllerException('Failed to initialize SoLoud engine', e);
+    }
+    // ... rest of your existing initialization code ...
+    _log.info('SoLoud engine initialized');
+    _soloud.setVisualizationEnabled(false);
+    _soloud.setGlobalVolume(maxFilterValue);
+    _soloud.setMaxActiveVoiceCount(36);
+
+    _log.info('Setting up and loading assets...');
+    setupLoadAssets(_soloud, _preloadedSounds);
+    await loadAssets();
+
+    if (_preloadedSounds.isEmpty) {
+      throw AudioControllerException(
+          'No sounds were preloaded during initialization');
     }
   }
 
@@ -270,6 +289,7 @@ class AudioController {
   Future<void> dispose() async {
     try {
       await stopMusic();
+      await Future.delayed(const Duration(milliseconds: 100));
 
       for (final source in _preloadedSounds.values) {
         _soloud.disposeSource(source);
