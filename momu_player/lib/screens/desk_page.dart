@@ -5,6 +5,7 @@ import 'package:momu_player/constants.dart';
 import 'package:momu_player/controller/audio_controller.dart';
 import 'settings_page.dart';
 import '../components/slider_layout.dart';
+import 'package:momu_player/components/segmentedbutton_layout.dart';
 import 'package:logging/logging.dart';
 
 final Logger _log = Logger('DeskPage'); // Add this line
@@ -120,25 +121,7 @@ class _DeskPageState extends State<DeskPage> {
   // Creates segmented buttons for filter selection
   Widget _buildFilterButtons() {
     return SegmentedButtonTheme(
-      data: SegmentedButtonTheme.of(context).copyWith(
-        style: const ButtonStyle().copyWith(
-          textStyle: WidgetStatePropertyAll(
-            TextStyle(
-              backgroundColor: Colors.yellowAccent.withValues(alpha: 0.1),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          shape: WidgetStatePropertyAll<RoundedRectangleBorder>(
-            RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4.0),
-            ),
-          ),
-          overlayColor: WidgetStatePropertyAll(
-            Colors.greenAccent.withValues(alpha: 0.2),
-          ),
-        ),
-      ),
+      data: segmentedButtonLayout(context),
       child: SegmentedButton<Filter>(
         segments: const <ButtonSegment<Filter>>[
           ButtonSegment<Filter>(
