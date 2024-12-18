@@ -1,13 +1,18 @@
 import 'dart:developer' as dev;
+import 'dart:async'; // Add this import
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'components/loading_screen.dart';
 import 'package:logging/logging.dart';
+import 'components/error_screen.dart';
 import 'package:momu_player/screens/desk_page.dart';
 import 'controller/audio_controller.dart';
 import 'constants.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize logging
   Logger.root.level = kDebugMode ? Level.FINE : Level.INFO;
   Logger.root.onRecord.listen((record) {
     dev.log(
@@ -21,14 +26,26 @@ void main() async {
     );
   });
 
-  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    final audioController = AudioController();
+    // Add timeout to initial setup
+    await Future.any([
+      audioController.initialized,
+      Future.delayed(const Duration(seconds: 30)).then((_) {
+        throw TimeoutException('App initialization timed out');
+      }),
+    ]);
 
-  // Don't wait for initialization here, show loading screen immediately
-  final audioController = AudioController();
-
-  runApp(
-    MoMuPlayerApp(audioController: audioController),
-  );
+    runApp(
+      MoMuPlayerApp(audioController: audioController),
+    );
+  } catch (e, stackTrace) {
+    final error = e is TimeoutException
+        ? 'App failed to initialize (timeout)'
+        : 'App failed to initialize: ${e.toString()}';
+    Logger('main').severe(error, e, stackTrace);
+    runApp(const MaterialApp(home: ErrorScreen()));
+  }
 }
 
 class MoMuPlayerApp extends StatefulWidget {
@@ -47,14 +64,29 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
     _initializeApp();
   }
 
-  Future<void> _initializeApp() async {
-    // Wait for initialization here, while loading screen is shown
-    await widget.audioController.initialized;
+  @override
+  void dispose() {
+    widget.audioController.dispose();
+    super.dispose();
+  }
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+  Future<void> _initializeApp() async {
+    try {
+      await widget.audioController.initialized;
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e, stackTrace) {
+      Logger('MoMuPlayerApp').severe('Failed to initialize app', e, stackTrace);
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ErrorScreen()),
+        );
+      }
     }
   }
 
