@@ -34,9 +34,23 @@ class _DeskPageState extends State<DeskPage> {
   @override
   void initState() {
     super.initState();
-    // Wait for audio controller to initialize before updating UI
     widget.audioController.initialized.then((_) {
-      if (mounted) setState(() {});
+      if (mounted) {
+        final currentValues = widget.audioController.getCurrentFilterValues();
+        setState(() {
+          wetValue = currentValues[
+              'reverbWet']!; // Use appropriate value based on filter
+          // Initialize filter state based on active filters
+          if (widget.audioController.soloud.filters.freeverbFilter.isActive) {
+            selectedFilter = Filter.reverb;
+          } else if (widget
+              .audioController.soloud.filters.echoFilter.isActive) {
+            selectedFilter = Filter.delay;
+          } else {
+            selectedFilter = Filter.off;
+          }
+        });
+      }
     });
   }
 
@@ -48,7 +62,6 @@ class _DeskPageState extends State<DeskPage> {
     });
   }
 
-  // Applies the selected filter with current wetValue
   // Applies the selected filter with current wetValue
   void _applyFilter() {
     try {
