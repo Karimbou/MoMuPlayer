@@ -148,8 +148,6 @@ class AudioController {
 
   // FILTER METHODS
 
-// Add these new methods to AudioController
-
 // Get current active filter values
   Map<String, double> getCurrentFilterValues() {
     if (!_soloud.isInitialized) return getLastUsedSettings();
