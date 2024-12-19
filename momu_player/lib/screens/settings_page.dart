@@ -25,6 +25,9 @@ class _SettingsPageState extends State<SettingsPage> {
   double _reverbRoomSize = AudioController.minFilterValue;
   double _delayTime = AudioController.minFilterValue;
   double _delayDecay = AudioController.minFilterValue;
+  double _biquadFrequency = AudioController.minFilterValue;
+  double _biquadWet = AudioController.minFilterValue;
+
   SoundType _selectedSound = SoundType.wurli;
 
   @override
@@ -42,13 +45,30 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() {
         _selectedSound =
             _settingsController.getSoundTypeFromString(currentSound);
+        // Load biquad settings
+        _biquadWet = settings['biquadWet']!.clamp(
+            AudioController.minFilterValue, AudioController.maxFilterValue);
+        // Frequency is already normalized (0-1)
+        _biquadFrequency = settings['biquadFrequency']!.clamp(
+            AudioController.minFilterValue, AudioController.maxFilterValue);
+        // Load reverb settings
         _reverbRoomSize = settings['roomSize']!.clamp(
             AudioController.minFilterValue, AudioController.maxFilterValue);
+        // Load delay settings
         _delayTime = settings['delay']!.clamp(
             AudioController.minFilterValue, AudioController.maxFilterValue);
         _delayDecay = settings['decay']!.clamp(
             AudioController.minFilterValue, AudioController.maxFilterValue);
       });
+      // Apply all filter settings
+      widget.audioController
+          .applyBiquadFilter(_biquadWet, frequency: _biquadFrequency);
+
+      widget.audioController
+          .applyReverbFilter(_reverbRoomSize, roomSize: _reverbRoomSize);
+
+      widget.audioController
+          .applyDelayFilter(_delayTime, delay: _delayTime, decay: _delayDecay);
       _log.fine('Settings loaded successfully');
     } catch (e, stackTrace) {
       final error = e is SettingsException
@@ -63,6 +83,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
 
       setState(() {
+        _biquadFrequency = AudioController.minFilterValue;
         _reverbRoomSize = AudioController.minFilterValue;
         _delayTime = AudioController.minFilterValue;
         _delayDecay = AudioController.minFilterValue;
@@ -93,11 +114,13 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildAllSettings() {
+    // Builder for the settings widgets
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Settings for reverb
           SettingsWidgets.buildReverbSettings(
             context,
             _reverbRoomSize,
@@ -109,6 +132,7 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
           const SizedBox(height: 32),
+          // Settings for delay
           SettingsWidgets.buildDelaySettings(
             context,
             _delayTime,
@@ -126,7 +150,29 @@ class _SettingsPageState extends State<SettingsPage> {
               });
             },
           ),
+          // Settings for biquad filter
           const SizedBox(height: 32),
+          SettingsWidgets.buildBiQuadSettings(
+            context,
+            _biquadWet,
+            _biquadFrequency,
+            (wetValue) {
+              setState(() {
+                _biquadWet = wetValue;
+                widget.audioController
+                    .applyBiquadFilter(wetValue, frequency: _biquadFrequency);
+              });
+            },
+            (freqValue) {
+              setState(() {
+                _biquadFrequency = freqValue; // Store normalized value
+                widget.audioController
+                    .applyBiquadFilter(_biquadWet, frequency: freqValue);
+              });
+            },
+          ),
+          const SizedBox(height: 32),
+          // Settings for sound selection
           SettingsWidgets.buildSoundSelection(
             context,
             _selectedSound,

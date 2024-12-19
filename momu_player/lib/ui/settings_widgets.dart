@@ -33,6 +33,28 @@ class SettingsWidgets {
     );
   }
 
+  static Widget buildBiQuadSettings(
+      BuildContext context,
+      double wetValue,
+      double frequencyValue,
+      Function(double) onWetChanged,
+      Function(double) onFrequencyChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'BiQuad Filter Settings',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        buildSliderSection(context, 'Filter Intensity', wetValue, onWetChanged),
+        const SizedBox(height: 16),
+        buildSliderSection(
+            context, 'Frequency', frequencyValue, onFrequencyChanged),
+      ],
+    );
+  }
+
   static Widget buildReverbSettings(
       BuildContext context, // Add BuildContext parameter
       double reverbRoomSize,
