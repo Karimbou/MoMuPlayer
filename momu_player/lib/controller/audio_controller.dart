@@ -29,6 +29,13 @@ class AudioController {
   static const double defaultReverbWet = 0.3;
   static const double defaultReverbRoomSize = 0.5;
 
+  // Add fields to store last used filter values
+  double _lastReverbWet = defaultReverbWet;
+  double _lastReverbRoomSize = defaultReverbRoomSize;
+  double _lastEchoWet = defaultEchoWet;
+  double _lastEchoDelay = defaultEchoDelay;
+  double _lastEchoDecay = defaultEchoDecay;
+
   // PRIVATE FIELDS
   late final SoLoud _soloud;
   final Map<String, AudioSource> _preloadedSounds = {};
@@ -202,23 +209,32 @@ class AudioController {
         return;
       }
 
+      // Store current values before removing filters
       if (_soloud.filters.freeverbFilter.isActive) {
+        _lastReverbWet = _reverbWet;
+        _lastReverbRoomSize = _reverbRoomSize;
         _soloud.filters.freeverbFilter.deactivate();
       }
       if (_soloud.filters.echoFilter.isActive) {
+        _lastEchoWet = _echoWet;
+        _lastEchoDelay = _echoDelay;
+        _lastEchoDecay = _echoDecay;
         _soloud.filters.echoFilter.deactivate();
       }
-
-      _echoWet = defaultEchoWet;
-      _echoDelay = defaultEchoDelay;
-      _echoDecay = defaultEchoDecay;
-      _reverbWet = defaultReverbWet;
-      _reverbRoomSize = defaultReverbRoomSize;
 
       _log.info('Successfully removed all filters');
     } catch (e) {
       _log.severe('Failed to remove filters', e);
     }
+  }
+
+  // Add method to get last used settings
+  Map<String, double> getLastUsedSettings() {
+    return {
+      'roomSize': _lastReverbRoomSize,
+      'delay': _lastEchoDelay,
+      'decay': _lastEchoDecay,
+    };
   }
 
   // PLAYBACK METHODS
