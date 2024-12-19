@@ -100,7 +100,7 @@ Future<void> loadAssets() async {
     }
     try {
       _log.fine('Loading wurli_c_oc.wav...');
-      _preloadedSounds['note_c-oc'] =
+      _preloadedSounds['note_c_oc'] =
           await _soloud.loadAsset('assets/sounds/wurli/wurli_c_oc.wav');
       loadedCount++;
       _log.fine('Successfully loaded wurli_c_oc.wav');
@@ -120,6 +120,16 @@ Future<void> loadAssets() async {
 Future<void> switchInstrumentSounds(String instrumentType) async {
   try {
     _log.info('Starting instrument switch to: $instrumentType');
+
+    // Store current filter settings before switching
+    final currentSettings = {
+      'reverbWet': _soloud.filters.freeverbFilter.wet.value,
+      'reverbRoomSize': _soloud.filters.freeverbFilter.roomSize.value,
+      'echoWet': _soloud.filters.echoFilter.wet.value,
+      'echoDelay': _soloud.filters.echoFilter.delay.value,
+      'echoDecay': _soloud.filters.echoFilter.decay.value,
+    };
+
     _log.info('Disposing current sound sources...');
     _soloud.disposeAllSources();
     _preloadedSounds.clear();
@@ -145,16 +155,21 @@ Future<void> switchInstrumentSounds(String instrumentType) async {
 
     try {
       _log.info('Applying initial audio effects...');
-      applyInitialAudioEffects();
+      applyInitialAudioEffects(
+        reverbWet: currentSettings['reverbWet'],
+        reverbRoomSize: currentSettings['reverbRoomSize'],
+        echoWet: currentSettings['echoWet'],
+        echoDelay: currentSettings['echoDelay'],
+        echoDecay: currentSettings['echoDecay'],
+      );
     } catch (e) {
       _log.warning('Failed to apply audio effects, but sounds were loaded: $e');
-      // Don't rethrow filter errors - allow sound switch to succeed
     }
 
-    _log.info(
-        'Successfully switched to $instrumentType sounds. Loaded ${_preloadedSounds.length} sounds: ${_preloadedSounds.keys.join(', ')}');
-  } on SoLoudException catch (e) {
-    _log.severe('Failed to switch instrument sounds: ${e.message}', e);
+    _log.info('Successfully switched to ${instrumentType} sounds. ' +
+        'Loaded ${_preloadedSounds.length} sounds: ${_preloadedSounds.keys.join(', ')}');
+  } catch (e) {
+    _log.severe('Failed to switch instrument sounds', e);
     rethrow;
   }
 }
@@ -169,7 +184,6 @@ Future<void> _loadWurlitzerSounds() async {
       _log.fine('Loading wurlitzer note: $note');
       try {
         // Set shouldStream to false for small sound files to load them entirely into memory
-        // Load the sound file into memory
         // Load the sound file into memory
         _preloadedSounds['note_$note'] = await _soloud.loadAsset(
           'assets/sounds/wurli/wurli_$note.wav',
@@ -249,7 +263,12 @@ Future<void> _loadPianoChords() async {
   }
 }
 
-void applyInitialAudioEffects() {
+void applyInitialAudioEffects(
+    {double? reverbWet,
+    double? reverbRoomSize,
+    double? echoWet,
+    double? echoDelay,
+    double? echoDecay}) {
   try {
     _log.info('Deactivating existing filters...');
     // First deactivate existing filters if they're active
@@ -268,18 +287,21 @@ void applyInitialAudioEffects() {
     _soloud.filters.freeverbFilter.activate();
 
     _log.info('Setting filter values...');
-    // Set the filter values using AudioController defaults
-    _soloud.filters.echoFilter.wet.value = AudioController.defaultEchoWet;
-    _soloud.filters.echoFilter.delay.value = AudioController.defaultEchoDelay;
-    _soloud.filters.echoFilter.decay.value = AudioController.defaultEchoDecay;
-
-    _soloud.filters.freeverbFilter.wet.value = AudioController.defaultReverbWet;
+    // Set the filter values using provided values or AudioController defaults
+    _soloud.filters.echoFilter.wet.value =
+        echoWet ?? AudioController.defaultEchoWet;
+    _soloud.filters.echoFilter.delay.value =
+        echoDelay ?? AudioController.defaultEchoDelay;
+    _soloud.filters.echoFilter.decay.value =
+        echoDecay ?? AudioController.defaultEchoDecay;
+    _soloud.filters.freeverbFilter.wet.value =
+        reverbWet ?? AudioController.defaultReverbWet;
     _soloud.filters.freeverbFilter.roomSize.value =
-        AudioController.defaultReverbRoomSize;
+        reverbRoomSize ?? AudioController.defaultReverbRoomSize;
 
-    _log.info('Successfully applied initial audio effects');
+    _log.info('Successfully applied audio effects');
   } catch (e) {
-    _log.severe('Failed to apply initial audio effects: $e');
+    _log.severe('Failed to apply audio effects: $e');
     rethrow;
   }
 }

@@ -44,13 +44,32 @@ class SettingsController {
   }
 
   Map<String, double> getCurrentSettings() {
-    final SoLoud soloud = audioController.soloud;
+    try {
+      final SoLoud soloud = audioController.soloud;
 
-    return {
-      'roomSize': soloud.filters.freeverbFilter.roomSize.value,
-      'delay': soloud.filters.echoFilter.delay.value,
-      'decay': soloud.filters.echoFilter.decay.value,
-    };
+      if (!soloud.isInitialized ||
+          (!soloud.filters.freeverbFilter.isActive &&
+              !soloud.filters.echoFilter.isActive)) {
+        // Return last used values instead of defaults
+        _log.info('Filters not active, returning last used values');
+        return audioController.getLastUsedSettings();
+      }
+
+      return {
+        'roomSize': soloud.filters.freeverbFilter.isActive
+            ? soloud.filters.freeverbFilter.roomSize.value
+            : audioController.getLastUsedSettings()['roomSize']!,
+        'delay': soloud.filters.echoFilter.isActive
+            ? soloud.filters.echoFilter.delay.value
+            : audioController.getLastUsedSettings()['delay']!,
+        'decay': soloud.filters.echoFilter.isActive
+            ? soloud.filters.echoFilter.decay.value
+            : audioController.getLastUsedSettings()['decay']!,
+      };
+    } catch (e) {
+      _log.severe('Error getting current settings', e);
+      return audioController.getLastUsedSettings();
+    }
   }
 
   SoundType getSoundTypeFromString(String soundName) {
