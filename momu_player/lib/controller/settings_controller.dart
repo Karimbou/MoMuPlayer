@@ -43,19 +43,40 @@ class SettingsController {
     }
   }
 
+  void updateBiQuadFilter(double value) {
+    try {
+      final biquadFilter = audioController.soloud.filters.biquadResonantFilter;
+      if (!biquadFilter.isActive) {
+        biquadFilter.activate();
+      }
+      // Map the 0-1 value to frequency range (20Hz - 20000Hz)
+      final frequency = (value * 10000.0 + 20.0).clamp(20.0, 20000.0);
+      biquadFilter.frequency.value = frequency;
+      _log.info('Updated biquad frequency to: $frequency Hz');
+    } catch (e) {
+      _log.severe('Failed to update biquad settings: $e');
+    }
+  }
+
   Map<String, double> getCurrentSettings() {
     try {
       final SoLoud soloud = audioController.soloud;
 
       if (!soloud.isInitialized ||
           (!soloud.filters.freeverbFilter.isActive &&
-              !soloud.filters.echoFilter.isActive)) {
-        // Return last used values instead of defaults
+              !soloud.filters.echoFilter.isActive &&
+              !soloud.filters.biquadResonantFilter.isActive)) {
         _log.info('Filters not active, returning last used values');
         return audioController.getLastUsedSettings();
       }
 
       return {
+        'biquadFrequency': soloud.filters.biquadResonantFilter.isActive
+            ? soloud.filters.biquadResonantFilter.frequency.value
+            : audioController.getLastUsedSettings()['biquadFrequency']!,
+        'biquadWet': soloud.filters.biquadResonantFilter.isActive
+            ? soloud.filters.biquadResonantFilter.wet.value
+            : audioController.getLastUsedSettings()['biquadWet']!,
         'roomSize': soloud.filters.freeverbFilter.isActive
             ? soloud.filters.freeverbFilter.roomSize.value
             : audioController.getLastUsedSettings()['roomSize']!,

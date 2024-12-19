@@ -25,7 +25,7 @@ class DeskPage extends StatefulWidget {
 }
 
 // Enum to define available filter types
-enum Filter { off, reverb, delay }
+enum Filter { off, reverb, delay, biquad }
 
 class _DeskPageState extends State<DeskPage> {
   double wetValue = 0.5; // Controls the intensity of the audio effect
@@ -38,14 +38,16 @@ class _DeskPageState extends State<DeskPage> {
       if (mounted) {
         final currentValues = widget.audioController.getCurrentFilterValues();
         setState(() {
-          wetValue = currentValues[
-              'reverbWet']!; // Use appropriate value based on filter
-          // Initialize filter state based on active filters
+          wetValue = currentValues['reverbWet']!;
           if (widget.audioController.soloud.filters.freeverbFilter.isActive) {
             selectedFilter = Filter.reverb;
           } else if (widget
               .audioController.soloud.filters.echoFilter.isActive) {
             selectedFilter = Filter.delay;
+          } else if (widget
+              .audioController.soloud.filters.biquadResonantFilter.isActive) {
+            // Add this check
+            selectedFilter = Filter.biquad;
           } else {
             selectedFilter = Filter.off;
           }
@@ -75,6 +77,10 @@ class _DeskPageState extends State<DeskPage> {
           // Apply delay effect
           widget.audioController.applyDelayFilter(wetValue);
           _log.info('Applied delay filter with intensity: $wetValue');
+          break;
+        case Filter.biquad:
+          widget.audioController.applyBiquadFilter(wetValue);
+          _log.info('Applied biquad filter with intensity: $wetValue');
           break;
         case Filter.off:
           // Turn off all effects
@@ -137,6 +143,10 @@ class _DeskPageState extends State<DeskPage> {
       data: segmentedButtonLayout(context),
       child: SegmentedButton<Filter>(
         segments: const <ButtonSegment<Filter>>[
+          ButtonSegment<Filter>(
+            value: Filter.biquad,
+            label: Text('Filter'),
+          ),
           ButtonSegment<Filter>(
             value: Filter.reverb,
             label: Text('Reverb'),

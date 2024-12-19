@@ -166,7 +166,7 @@ Future<void> switchInstrumentSounds(String instrumentType) async {
       _log.warning('Failed to apply audio effects, but sounds were loaded: $e');
     }
 
-    _log.info('Successfully switched to ${instrumentType} sounds. ' +
+    _log.info('Successfully switched to $instrumentType sounds. '
         'Loaded ${_preloadedSounds.length} sounds: ${_preloadedSounds.keys.join(', ')}');
   } catch (e) {
     _log.severe('Failed to switch instrument sounds', e);
