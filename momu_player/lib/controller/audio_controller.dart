@@ -147,14 +147,52 @@ class AudioController {
   }
 
   // FILTER METHODS
-  void applyReverbFilter(double intensity, {double? roomSize}) {
+
+// Add these new methods to AudioController
+
+// Get current active filter values
+  Map<String, double> getCurrentFilterValues() {
+    if (!_soloud.isInitialized) return getLastUsedSettings();
+
+    return {
+      'roomSize': _soloud.filters.freeverbFilter.isActive
+          ? _soloud.filters.freeverbFilter.roomSize.value
+          : _lastReverbRoomSize,
+      'delay': _soloud.filters.echoFilter.isActive
+          ? _soloud.filters.echoFilter.delay.value
+          : _lastEchoDelay,
+      'decay': _soloud.filters.echoFilter.isActive
+          ? _soloud.filters.echoFilter.decay.value
+          : _lastEchoDecay,
+      'reverbWet': _soloud.filters.freeverbFilter.isActive
+          ? _soloud.filters.freeverbFilter.wet.value
+          : _lastReverbWet,
+      'echoWet': _soloud.filters.echoFilter.isActive
+          ? _soloud.filters.echoFilter.wet.value
+          : _lastEchoWet,
+    };
+  }
+
+// Add this method to restore filter states
+  void restoreFilterStates() {
+    if (_soloud.filters.freeverbFilter.isActive) {
+      applyReverbFilter(_lastReverbWet, roomSize: _lastReverbRoomSize);
+    }
+    if (_soloud.filters.echoFilter.isActive) {
+      applyDelayFilter(_lastEchoWet,
+          delay: _lastEchoDelay, decay: _lastEchoDecay);
+    }
+  }
+
+  void applyReverbFilter(double intensity, {double? roomSize, double? wet}) {
     try {
       if (!_soloud.isInitialized) {
         _log.warning('Cannot apply reverb - audio controller not initialized');
         return;
       }
 
-      _reverbWet = intensity.clamp(minFilterValue, maxFilterValue);
+      _reverbWet = (wet ?? intensity).clamp(minFilterValue, maxFilterValue);
+      _soloud.filters.freeverbFilter.wet.value = _reverbWet;
       _reverbRoomSize =
           (roomSize ?? intensity).clamp(minFilterValue, maxFilterValue);
 
@@ -168,14 +206,16 @@ class AudioController {
     }
   }
 
-  void applyDelayFilter(double intensity, {double? delay, double? decay}) {
+  void applyDelayFilter(double intensity,
+      {double? delay, double? decay, double? wet}) {
     try {
       if (!_soloud.isInitialized) {
         _log.warning('Cannot apply delay - audio controller not initialized');
         return;
       }
 
-      _echoWet = intensity.clamp(minFilterValue, maxFilterValue);
+      _echoWet = (wet ?? intensity).clamp(minFilterValue, maxFilterValue);
+      _soloud.filters.echoFilter.wet.value = _echoWet;
       _echoDelay = (delay ?? intensity).clamp(minFilterValue, maxFilterValue);
       _echoDecay =
           (decay ?? defaultEchoDecay).clamp(minFilterValue, maxFilterValue);
@@ -234,6 +274,8 @@ class AudioController {
       'roomSize': _lastReverbRoomSize,
       'delay': _lastEchoDelay,
       'decay': _lastEchoDecay,
+      'reverbWet': _lastReverbWet,
+      'echoWet': _lastEchoWet,
     };
   }
 
