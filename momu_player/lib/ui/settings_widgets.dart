@@ -3,6 +3,7 @@ import '../audio/audio_config.dart'; // Update import
 import '../model/settings_model.dart';
 import '../components/segmentedbutton_layout.dart';
 import '../components/slider_layout.dart';
+import '../audio/biquad_filter_type.dart';
 
 class SettingsWidgets {
   static Widget buildSliderSection(
@@ -38,8 +39,10 @@ class SettingsWidgets {
     BuildContext context,
     double wetValue,
     double frequencyValue,
+    BiquadFilterType filterType,
     Function(double) onWetChanged,
     Function(double) onFrequencyChanged,
+    Function(BiquadFilterType) onFilterTypeChanged,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,20 +52,27 @@ class SettingsWidgets {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        buildSliderSection(
-          context,
-          'Filter Intensity',
-          wetValue.clamp(
-              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
-          onWetChanged,
-        ),
+        buildSliderSection(context, 'Filter Intensity', wetValue, onWetChanged),
         const SizedBox(height: 16),
         buildSliderSection(
-          context,
-          'Frequency',
-          frequencyValue.clamp(
-              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
-          onFrequencyChanged,
+            context, 'Frequency', frequencyValue, onFrequencyChanged),
+        const SizedBox(height: 16),
+        // Add filter type selector
+        DropdownButtonFormField<BiquadFilterType>(
+          value: filterType,
+          decoration: const InputDecoration(
+            labelText: 'Filter Type',
+            border: OutlineInputBorder(),
+          ),
+          items: BiquadFilterType.values.map((type) {
+            return DropdownMenuItem(
+              value: type,
+              child: Text(type.displayName),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) onFilterTypeChanged(value);
+          },
         ),
       ],
     );
@@ -110,16 +120,14 @@ class SettingsWidgets {
         buildSliderSection(
           context,
           'Delay Time',
-          delayTime.clamp(
-              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
+          delayTime,
           onDelayChanged,
         ),
         const SizedBox(height: 16),
         buildSliderSection(
           context,
           'Decay',
-          delayDecay.clamp(
-              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
+          delayDecay,
           onDecayChanged,
         ),
       ],

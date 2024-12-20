@@ -17,14 +17,20 @@ class AudioConfig {
   static const double defaultReverbRoomSize = 0.5;
 
   // BiQuad filter defaults
-  static const double defaultBiquadFrequency = 0.5;
-  static const double defaultBiquadResonance = 1.0;
-  static const double defaultBiquadWet = 0.3;
-  static const double defaultBiquadType = 0.0;
+  static const double defaultBiquadFrequency = 0.5; // Maps to ~10kHz
+  static const double defaultBiquadResonance = 0.3; // Maps to 3.7 Q
+  static const double defaultBiquadWet = 0.7; // More audible default mix
+  static const double defaultBiquadType = 0.0; // Lowpass filter
+
+  // BiQuad filter types
+  static const int lowpassFilter = 0;
+  static const int highpassFilter = 1;
+  static const int bandpassFilter = 2;
+  static const int notchFilter = 3;
 
   // Frequency range for BiQuad filter
-  static const double minFrequencyHz = 10.0;
-  static const double maxFrequencyHz = 16000.0;
+  static const double minFrequencyHz = 20.0;
+  static const double maxFrequencyHz = 20000.0;
 
   // Default instrument
   static const String defaultInstrument = 'wurli';

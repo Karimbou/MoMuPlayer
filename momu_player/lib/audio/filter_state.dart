@@ -109,6 +109,7 @@ class FilterState {
     SoLoud soloud,
     double intensity, {
     double? frequency,
+    double? type,
   }) {
     try {
       _validateSoloud(soloud);
@@ -118,7 +119,7 @@ class FilterState {
         wet: intensity.clamp(AudioConfig.minValue, AudioConfig.maxValue),
         frequency: frequency ?? _current.biquad.frequency,
         resonance: _current.biquad.resonance,
-        type: _current.biquad.type,
+        type: type ?? _current.biquad.type,
       );
 
       if (!biquadFilter.isActive) {
@@ -126,13 +127,14 @@ class FilterState {
       }
 
       biquadFilter.wet.value = newValues.wet;
-      biquadFilter.frequency.value = _calculateFrequencyHz(newValues.frequency);
-      biquadFilter.resonance.value = newValues.resonance;
+      final frequencyHz = _calculateFrequencyHz(newValues.frequency);
+      biquadFilter.frequency.value = frequencyHz;
+      biquadFilter.resonance.value = 1.0 + (newValues.resonance * 9.0);
       biquadFilter.type.value = newValues.type;
 
-      // Update state
       _current = _current.copyWith(biquad: newValues);
-      _log.fine('Applied biquad filter: ${newValues.toString()}');
+      _log.fine(
+          'Applied biquad filter: Freq: ${frequencyHz}Hz, Type: ${newValues.type}, Wet: ${newValues.wet}');
     } catch (e) {
       _log.severe('Failed to apply biquad filter', e);
       rethrow;
@@ -216,18 +218,20 @@ class FilterState {
     }
   }
 
-  // Helper Methods
+  // Helper Method to validate the SoLoud instance before applying filters
   void _validateSoloud(SoLoud soloud) {
     if (!soloud.isInitialized) {
       throw StateError('SoLoud is not initialized');
     }
   }
+}
 
-  double _calculateFrequencyHz(double normalizedFreq) {
-    return (AudioConfig.minFrequencyHz *
-            math.pow(AudioConfig.maxFrequencyHz, normalizedFreq))
-        .clamp(AudioConfig.minFrequencyHz, AudioConfig.maxFrequencyHz);
-  }
+// Helper method for calculating frequency in Hz using logarithmic scaling
+double _calculateFrequencyHz(double normalizedFreq) {
+  return (AudioConfig.minFrequencyHz *
+          math.pow(AudioConfig.maxFrequencyHz / AudioConfig.minFrequencyHz,
+              normalizedFreq))
+      .clamp(AudioConfig.minFrequencyHz, AudioConfig.maxFrequencyHz);
 }
 
 // Value Classes for State Management

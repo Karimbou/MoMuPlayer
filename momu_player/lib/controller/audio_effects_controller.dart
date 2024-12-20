@@ -1,7 +1,7 @@
 import 'package:logging/logging.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import '../audio/audio_config.dart';
-import '../audio/_ilter_state.dart';
+import '../audio/filter_state.dart';
 
 /// Types of audio effects supported by the controller
 enum AudioEffectType {

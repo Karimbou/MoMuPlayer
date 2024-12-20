@@ -136,7 +136,8 @@ class _DeskPageState extends State<DeskPage> {
             {
               'intensity': wetValue,
               'frequency': wetValue,
-              'wet': wetValue,
+              'resonance': 0.5,
+              'type': 0.0, // Lowpass filter
             },
           );
           break;
