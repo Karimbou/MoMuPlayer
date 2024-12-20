@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:momu_player/controller/audio_controller.dart';
-import 'package:momu_player/model/settings_model.dart';
+import '../audio/audio_config.dart'; // Update import
+import '../model/settings_model.dart';
 import '../components/segmentedbutton_layout.dart';
 import '../components/slider_layout.dart';
 
 class SettingsWidgets {
   static Widget buildSliderSection(
-      BuildContext context, // Add BuildContext parameter
-      String label,
-      double value,
-      Function(double) onChanged) {
+    BuildContext context,
+    String label,
+    double value,
+    Function(double) onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -19,11 +20,11 @@ class SettingsWidgets {
         ),
         const SizedBox(height: 8),
         SliderTheme(
-          data: getCustomSliderTheme(context), // Use the context parameter
+          data: getCustomSliderTheme(context),
           child: Slider(
             value: value,
-            min: AudioController.minFilterValue,
-            max: AudioController.maxFilterValue,
+            min: AudioConfig.minValue, // Updated
+            max: AudioConfig.maxValue, // Updated
             onChanged: (newValue) {
               onChanged(newValue);
             },
@@ -34,11 +35,12 @@ class SettingsWidgets {
   }
 
   static Widget buildBiQuadSettings(
-      BuildContext context,
-      double wetValue,
-      double frequencyValue,
-      Function(double) onWetChanged,
-      Function(double) onFrequencyChanged) {
+    BuildContext context,
+    double wetValue,
+    double frequencyValue,
+    Function(double) onWetChanged,
+    Function(double) onFrequencyChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -47,18 +49,30 @@ class SettingsWidgets {
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        buildSliderSection(context, 'Filter Intensity', wetValue, onWetChanged),
+        buildSliderSection(
+          context,
+          'Filter Intensity',
+          wetValue.clamp(
+              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
+          onWetChanged,
+        ),
         const SizedBox(height: 16),
         buildSliderSection(
-            context, 'Frequency', frequencyValue, onFrequencyChanged),
+          context,
+          'Frequency',
+          frequencyValue.clamp(
+              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
+          onFrequencyChanged,
+        ),
       ],
     );
   }
 
   static Widget buildReverbSettings(
-      BuildContext context, // Add BuildContext parameter
-      double reverbRoomSize,
-      Function(double) onChanged) {
+    BuildContext context,
+    double reverbRoomSize,
+    Function(double) onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -68,17 +82,23 @@ class SettingsWidgets {
         ),
         const SizedBox(height: 16),
         buildSliderSection(
-            context, 'Room Size', reverbRoomSize, onChanged), // Pass context
+          context,
+          'Room Size',
+          reverbRoomSize.clamp(
+              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
+          onChanged,
+        ),
       ],
     );
   }
 
   static Widget buildDelaySettings(
-      BuildContext context, // Add BuildContext parameter
-      double delayTime,
-      double delayDecay,
-      Function(double) onDelayChanged,
-      Function(double) onDecayChanged) {
+    BuildContext context,
+    double delayTime,
+    double delayDecay,
+    Function(double) onDelayChanged,
+    Function(double) onDecayChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -88,18 +108,29 @@ class SettingsWidgets {
         ),
         const SizedBox(height: 16),
         buildSliderSection(
-            context, 'Delay Time', delayTime, onDelayChanged), // Pass context
+          context,
+          'Delay Time',
+          delayTime.clamp(
+              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
+          onDelayChanged,
+        ),
         const SizedBox(height: 16),
         buildSliderSection(
-            context, 'Decay', delayDecay, onDecayChanged), // Pass context
+          context,
+          'Decay',
+          delayDecay.clamp(
+              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
+          onDecayChanged,
+        ),
       ],
     );
   }
 
   static Widget buildSoundSelection(
-      BuildContext context, // Add context parameter
-      SoundType selectedSound,
-      Function(Set<SoundType>) onSelectionChanged) {
+    BuildContext context,
+    SoundType selectedSound,
+    Function(Set<SoundType>) onSelectionChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -114,19 +145,24 @@ class SettingsWidgets {
             segments: const <ButtonSegment<SoundType>>[
               ButtonSegment<SoundType>(
                 value: SoundType.wurli,
-                label: Text('Wurli'),
+                label: Text('Wurlitzer'),
+                tooltip: 'Wurlitzer Electric Piano',
               ),
               ButtonSegment<SoundType>(
                 value: SoundType.xylophone,
                 label: Text('Xylophone'),
+                tooltip: 'Xylophone',
               ),
               ButtonSegment<SoundType>(
                 value: SoundType.piano,
                 label: Text('Piano'),
+                tooltip: 'Piano Chords',
               ),
               ButtonSegment<SoundType>(
                 value: SoundType.sound4,
                 label: Text('Sound 4'),
+                enabled: false, // Disable until implemented
+                tooltip: 'Coming Soon',
               ),
             ],
             selected: {selectedSound},

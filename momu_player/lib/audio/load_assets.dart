@@ -1,6 +1,7 @@
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:logging/logging.dart';
-import '../controller/audio_controller.dart';
+import '../audio/audio_config.dart';
+import '../controller/audio_effects_controller.dart';
 
 final Logger _log = Logger('LoadAssets');
 late final SoLoud _soloud;
@@ -14,294 +15,239 @@ void setupLoadAssets(SoLoud soloud, Map<String, AudioSource> preloadedSounds) {
 Future<void> loadAssets() async {
   try {
     _log.info('Starting to load audio assets...');
-    int loadedCount = 0;
-    const totalAssets = 8; // Total number of assets to load
+    const totalAssets = 8;
 
-    // Load each sound with individual try-catch blocks
-    try {
-      _log.fine('Loading wurli_c.wav...');
-      _preloadedSounds['note_c'] =
-          await _soloud.loadAsset('assets/sounds/wurli/wurli_c.wav');
-      loadedCount++;
-
-      _log.fine('Successfully loaded wurli_c.wav');
-    } catch (e) {
-      _log.severe('Failed to load wurli_c.wav', e);
-      rethrow;
-    }
-
-    try {
-      _log.fine('Loading wurli_d.wav...');
-      _preloadedSounds['note_d'] =
-          await _soloud.loadAsset('assets/sounds/wurli/wurli_d.wav');
-      loadedCount++;
-
-      _log.fine('Successfully loaded wurli_d.wav');
-    } catch (e) {
-      _log.severe('Failed to load wurli_d.wav', e);
-      rethrow;
-    }
-
-    try {
-      _log.fine('Loading wurli_e.wav...');
-      _preloadedSounds['note_e'] =
-          await _soloud.loadAsset('assets/sounds/wurli/wurli_e.wav');
-      loadedCount++;
-
-      _log.fine('Successfully loaded wurli_e.wav');
-    } catch (e) {
-      _log.severe('Failed to load wurli_e.wav', e);
-      rethrow;
-    }
-
-    try {
-      _log.fine('Loading wurli_f.wav...');
-      _preloadedSounds['note_f'] =
-          await _soloud.loadAsset('assets/sounds/wurli/wurli_f.wav');
-      loadedCount++;
-      _log.fine('Successfully loaded wurli_f.wav');
-    } catch (e) {
-      _log.severe('Failed to load wurli_f.wav', e);
-      rethrow;
-    }
-
-    try {
-      _log.fine('Loading wurli_g.wav...');
-      _preloadedSounds['note_g'] =
-          await _soloud.loadAsset('assets/sounds/wurli/wurli_g.wav');
-      loadedCount++;
-
-      _log.fine('Successfully loaded wurli_g.wav');
-    } catch (e) {
-      _log.severe('Failed to load wurli_g.wav', e);
-      rethrow;
-    }
-
-    try {
-      _log.fine('Loading wurli_a.wav...');
-      _preloadedSounds['note_a'] =
-          await _soloud.loadAsset('assets/sounds/wurli/wurli_a.wav');
-      loadedCount++;
-      _log.fine('Successfully loaded wurli_a.wav');
-    } catch (e) {
-      _log.severe('Failed to load wurli_a.wav', e);
-      rethrow;
-    }
-
-    try {
-      _log.fine('Loading wurli_b.wav...');
-      _preloadedSounds['note_b'] =
-          await _soloud.loadAsset('assets/sounds/wurli/wurli_b.wav');
-      loadedCount++;
-      _log.fine('Successfully loaded wurli_b.wav');
-    } catch (e) {
-      _log.severe('Failed to load wurli_b.wav', e);
-      rethrow;
-    }
-    try {
-      _log.fine('Loading wurli_c_oc.wav...');
-      _preloadedSounds['note_c_oc'] =
-          await _soloud.loadAsset('assets/sounds/wurli/wurli_c_oc.wav');
-      loadedCount++;
-      _log.fine('Successfully loaded wurli_c_oc.wav');
-    } catch (e) {
-      _log.severe('Failed to load wurli_c_oc.wav', e);
-      rethrow;
-    }
+    // Load Wurlitzer sounds (default instrument)
+    final loadedSounds = await _loadWurlitzerSounds();
 
     _log.info(
-        'Successfully loaded all audio assets ($loadedCount/$totalAssets)');
+        'Successfully loaded all audio assets (${loadedSounds.length}/$totalAssets)');
+
+    if (loadedSounds.length != totalAssets) {
+      _log.warning(
+          'Not all assets were loaded. Expected: $totalAssets, Loaded: ${loadedSounds.length}');
+    }
   } catch (e) {
     _log.severe('Failed to load audio assets', e);
     rethrow;
   }
 }
 
+Future<List<String>> _loadWurlitzerSounds() async {
+  try {
+    _log.info('Starting to load wurlitzer sounds...');
+    final notes = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'];
+    final loadedNotes = <String>[];
+
+    // Load all sounds concurrently
+    await Future.wait(
+      notes.map((note) async {
+        try {
+          _log.fine('Loading wurli_$note.wav...');
+          _preloadedSounds['note_$note'] = await _soloud.loadAsset(
+            'assets/sounds/wurli/wurli_$note.wav',
+          );
+          loadedNotes.add(note);
+          _log.fine(
+              'Successfully loaded wurli_$note.wav (${loadedNotes.length}/${notes.length})');
+        } catch (e) {
+          _log.severe('Failed to load wurli_$note.wav', e);
+          rethrow;
+        }
+      }),
+    );
+
+    _log.info(
+        'Successfully loaded all wurlitzer sounds: ${loadedNotes.length} notes');
+    return loadedNotes;
+  } catch (e) {
+    _log.severe('Failed to load wurlitzer sounds', e);
+    rethrow;
+  }
+}
+
+// Update other loading methods similarly
+Future<List<String>> _loadXylophoneSounds() async {
+  try {
+    _log.info('Starting to load xylophone sounds...');
+    final notes = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'];
+    final loadedNotes = <String>[];
+
+    await Future.wait(
+      notes.map((note) async {
+        try {
+          _log.fine('Loading xylo_$note.wav...');
+          _preloadedSounds['note_$note'] = await _soloud.loadAsset(
+            'assets/sounds/xylophone/xylo_$note.wav',
+          );
+          loadedNotes.add(note);
+          _log.fine(
+              'Successfully loaded xylo_$note.wav (${loadedNotes.length}/${notes.length})');
+        } catch (e) {
+          _log.severe('Failed to load xylo_$note.wav', e);
+          rethrow;
+        }
+      }),
+    );
+
+    _log.info(
+        'Successfully loaded all xylophone sounds: ${loadedNotes.length} notes');
+    return loadedNotes;
+  } catch (e) {
+    _log.severe('Failed to load xylophone sounds', e);
+    rethrow;
+  }
+}
+
+Future<List<String>> _loadPianoChords() async {
+  try {
+    _log.info('Starting to load piano chords...');
+    final notes = ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'];
+    final loadedNotes = <String>[];
+
+    await Future.wait(
+      notes.map((note) async {
+        try {
+          _log.fine('Loading pianochord_$note.wav...');
+          _preloadedSounds['note_$note'] = await _soloud.loadAsset(
+            'assets/sounds/piano/pianochord_$note.wav',
+          );
+          loadedNotes.add(note);
+          _log.fine(
+              'Successfully loaded pianochord_$note.wav (${loadedNotes.length}/${notes.length})');
+        } catch (e) {
+          _log.severe('Failed to load pianochord_$note.wav', e);
+          rethrow;
+        }
+      }),
+    );
+
+    _log.info(
+        'Successfully loaded all piano chords: ${loadedNotes.length} notes');
+    return loadedNotes;
+  } catch (e) {
+    _log.severe('Failed to load piano chords', e);
+    rethrow;
+  }
+}
+
+// Update switchInstrumentSounds to use the tracking
 Future<void> switchInstrumentSounds(String instrumentType) async {
   try {
     _log.info('Starting instrument switch to: $instrumentType');
 
-    // Store current filter settings before switching
-    final currentSettings = {
-      'reverbWet': _soloud.filters.freeverbFilter.wet.value,
-      'reverbRoomSize': _soloud.filters.freeverbFilter.roomSize.value,
-      'echoWet': _soloud.filters.echoFilter.wet.value,
-      'echoDelay': _soloud.filters.echoFilter.delay.value,
-      'echoDecay': _soloud.filters.echoFilter.decay.value,
-    };
+    final effectsController = AudioEffectsController(_soloud);
+    final currentSettings = effectsController.getAllEffectSettings();
 
     _log.info('Disposing current sound sources...');
     _soloud.disposeAllSources();
     _preloadedSounds.clear();
     _log.info('Successfully cleared previous sounds');
 
-    switch (instrumentType.toLowerCase()) {
-      case 'wurli':
-        _log.info('Loading Wurlitzer sounds...');
-        await _loadWurlitzerSounds();
-      case 'xylophone':
-        _log.info('Loading Xylophone sounds...');
-        await _loadXylophoneSounds();
-      case 'piano':
-        _log.info('Loading Piano Chords...');
-        await _loadPianoChords();
-      case 'sound4':
-        _log.warning('Sound4 not implemented yet');
-        throw UnimplementedError('Sound4 not yet implemented');
-      default:
-        _log.severe('Unknown instrument type requested: $instrumentType');
-        throw Exception('Unknown instrument type: $instrumentType');
-    }
+    // Load new instrument sounds with tracking
+    final loadedSounds = await _loadInstrumentSounds(instrumentType);
 
+    // Restore effects settings
     try {
-      _log.info('Applying initial audio effects...');
+      _log.info('Restoring audio effects...');
       applyInitialAudioEffects(
-        reverbWet: currentSettings['reverbWet'],
-        reverbRoomSize: currentSettings['reverbRoomSize'],
-        echoWet: currentSettings['echoWet'],
-        echoDelay: currentSettings['echoDelay'],
-        echoDecay: currentSettings['echoDecay'],
+        // Reverb settings
+        reverbWet: currentSettings['reverb']?['wet'],
+        reverbRoomSize: currentSettings['reverb']?['roomSize'],
+        // Delay settings
+        echoWet: currentSettings['delay']?['wet'],
+        echoDelay: currentSettings['delay']?['delay'],
+        echoDecay: currentSettings['delay']?['decay'],
+        // Biquad settings
+        biquadWet: currentSettings['biquad']?['wet'],
+        biquadFrequency: currentSettings['biquad']?['frequency'],
+        biquadResonance: currentSettings['biquad']?['resonance'],
       );
     } catch (e) {
-      _log.warning('Failed to apply audio effects, but sounds were loaded: $e');
+      _log.warning(
+          'Failed to restore audio effects, but ${loadedSounds.length} sounds were loaded: $e');
     }
 
     _log.info('Successfully switched to $instrumentType sounds. '
-        'Loaded ${_preloadedSounds.length} sounds: ${_preloadedSounds.keys.join(', ')}');
+        'Loaded ${loadedSounds.length} sounds: ${loadedSounds.join(", ")}');
   } catch (e) {
     _log.severe('Failed to switch instrument sounds', e);
     rethrow;
   }
 }
 
-Future<void> _loadWurlitzerSounds() async {
-  try {
-    _log.info('Starting to load wurlitzer sounds...');
-
-    // Create a list of futures to load all sounds concurrently
-    final futures =
-        ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'].map((note) async {
-      _log.fine('Loading wurlitzer note: $note');
-      try {
-        // Set shouldStream to false for small sound files to load them entirely into memory
-        // Load the sound file into memory
-        _preloadedSounds['note_$note'] = await _soloud.loadAsset(
-          'assets/sounds/wurli/wurli_$note.wav',
-        );
-        _log.fine('Successfully loaded wurlitzer note: $note');
-      } catch (e) {
-        _log.severe('Failed to load wurlitzer note $note: $e');
-        rethrow;
-      }
-    });
-
-    // Wait for all sounds to load concurrently
-    await Future.wait(futures);
-
-    _log.info(
-        'Successfully loaded all wurlitzer sounds: ${_preloadedSounds.length} notes');
-  } on Exception catch (e) {
-    _log.severe('Failed to load wurlitzer sounds: $e');
-    rethrow;
+Future<List<String>> _loadInstrumentSounds(String instrumentType) async {
+  switch (instrumentType.toLowerCase()) {
+    case 'wurli':
+      _log.info('Loading Wurlitzer sounds...');
+      return await _loadWurlitzerSounds();
+    case 'xylophone':
+      _log.info('Loading Xylophone sounds...');
+      return await _loadXylophoneSounds();
+    case 'piano':
+      _log.info('Loading Piano Chords...');
+      return await _loadPianoChords();
+    case 'sound4':
+      _log.warning('Sound4 not implemented yet');
+      throw UnimplementedError('Sound4 not yet implemented');
+    default:
+      _log.severe('Unknown instrument type requested: $instrumentType');
+      throw Exception('Unknown instrument type: $instrumentType');
   }
 }
 
-// Apply the same pattern to _loadXylophoneSounds and _loadPianoChords
-Future<void> _loadXylophoneSounds() async {
+/// Applies initial audio effects after loading or switching instruments
+void applyInitialAudioEffects({
+  double? reverbWet,
+  double? reverbRoomSize,
+  double? echoWet,
+  double? echoDelay,
+  double? echoDecay,
+  double? biquadWet,
+  double? biquadFrequency,
+  double? biquadResonance,
+}) {
   try {
-    _log.info('Starting to load xylophone sounds...');
+    _log.info('Applying initial audio effects...');
 
-    final futures =
-        ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'].map((note) async {
-      _log.fine('Loading xylophone note: $note');
-      try {
-        _preloadedSounds['note_$note'] = await _soloud.loadAsset(
-          'assets/sounds/xylophone/xylo_$note.wav',
-        );
-        _log.fine('Successfully loaded xylophone note: $note');
-      } catch (e) {
-        _log.severe('Failed to load xylophone note $note: $e');
-        rethrow;
-      }
-    });
+    // Create temporary AudioEffectsController for applying effects
+    final effectsController = AudioEffectsController(_soloud);
 
-    await Future.wait(futures);
+    // Apply reverb effect
+    effectsController.applyEffect(
+      AudioEffectType.reverb,
+      {
+        'intensity': reverbWet ?? AudioConfig.defaultReverbWet,
+        'roomSize': reverbRoomSize ?? AudioConfig.defaultReverbRoomSize,
+        'wet': reverbWet ?? AudioConfig.defaultReverbWet,
+      },
+    );
 
-    _log.info(
-        'Successfully loaded all xylophone sounds: ${_preloadedSounds.length} notes');
-  } on Exception catch (e) {
-    _log.severe('Failed to load xylophone sounds: $e');
-    rethrow;
-  }
-}
+    // Apply delay effect
+    effectsController.applyEffect(
+      AudioEffectType.delay,
+      {
+        'intensity': echoWet ?? AudioConfig.defaultEchoWet,
+        'delay': echoDelay ?? AudioConfig.defaultEchoDelay,
+        'decay': echoDecay ?? AudioConfig.defaultEchoDecay,
+        'wet': echoWet ?? AudioConfig.defaultEchoWet,
+      },
+    );
 
-Future<void> _loadPianoChords() async {
-  try {
-    _log.info('Starting to load Piano Chords...');
+    // Apply biquad effect
+    effectsController.applyEffect(
+      AudioEffectType.biquad,
+      {
+        'intensity': biquadWet ?? AudioConfig.defaultBiquadWet,
+        'frequency': biquadFrequency ?? AudioConfig.defaultBiquadFrequency,
+        'resonance': biquadResonance ?? AudioConfig.defaultBiquadResonance,
+        'wet': biquadWet ?? AudioConfig.defaultBiquadWet,
+      },
+    );
 
-    final futures =
-        ['c', 'd', 'e', 'f', 'g', 'a', 'b', 'c_oc'].map((note) async {
-      _log.fine('Loading Piano Chords: $note');
-      try {
-        _preloadedSounds['note_$note'] = await _soloud.loadAsset(
-          'assets/sounds/piano/pianochord_$note.wav',
-        );
-        _log.fine('Successfully loaded Piano Chords note: $note');
-      } catch (e) {
-        _log.severe('Failed to load Piano Chords note $note: $e');
-        rethrow;
-      }
-    });
-
-    await Future.wait(futures);
-
-    _log.info(
-        'Successfully loaded all Piano Chords: ${_preloadedSounds.length} notes');
-  } on Exception catch (e) {
-    _log.severe('Failed to load Piano Chords: $e');
-    rethrow;
-  }
-}
-
-void applyInitialAudioEffects(
-    {double? reverbWet,
-    double? reverbRoomSize,
-    double? echoWet,
-    double? echoDelay,
-    double? echoDecay}) {
-  try {
-    _log.info('Deactivating existing filters...');
-    // First deactivate existing filters if they're active
-    if (_soloud.filters.echoFilter.isActive) {
-      _log.fine('Deactivating echo filter');
-      _soloud.filters.echoFilter.deactivate();
-    }
-    if (_soloud.filters.freeverbFilter.isActive) {
-      _log.fine('Deactivating reverb filter');
-      _soloud.filters.freeverbFilter.deactivate();
-    }
-
-    _log.info('Activating new filters...');
-    // Now activate and set new filter values
-    _soloud.filters.echoFilter.activate();
-    _soloud.filters.freeverbFilter.activate();
-
-    _log.info('Setting filter values...');
-    // Set the filter values using provided values or AudioController defaults
-    _soloud.filters.echoFilter.wet.value =
-        echoWet ?? AudioController.defaultEchoWet;
-    _soloud.filters.echoFilter.delay.value =
-        echoDelay ?? AudioController.defaultEchoDelay;
-    _soloud.filters.echoFilter.decay.value =
-        echoDecay ?? AudioController.defaultEchoDecay;
-    _soloud.filters.freeverbFilter.wet.value =
-        reverbWet ?? AudioController.defaultReverbWet;
-    _soloud.filters.freeverbFilter.roomSize.value =
-        reverbRoomSize ?? AudioController.defaultReverbRoomSize;
-
-    _log.info('Successfully applied audio effects');
+    _log.info('Successfully applied initial audio effects');
   } catch (e) {
-    _log.severe('Failed to apply audio effects: $e');
+    _log.severe('Failed to apply initial audio effects', e);
     rethrow;
   }
 }

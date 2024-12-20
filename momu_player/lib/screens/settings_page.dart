@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:momu_player/controller/audio_controller.dart';
-import 'package:momu_player/controller/settings_controller.dart';
-import 'package:momu_player/model/settings_model.dart';
-import 'package:momu_player/ui/settings_widgets.dart';
-import 'package:momu_player/audio/load_assets.dart';
 import 'package:logging/logging.dart';
+import '../audio/audio_config.dart'; // Added new import
+import '../controller/audio_controller.dart';
+import '../controller/settings_controller.dart';
+import '../controller/audio_effects_controller.dart'; // Added for AudioEffectType
+import '../model/settings_model.dart';
+import '../ui/settings_widgets.dart';
+import '../audio/load_assets.dart';
 
-final Logger _log = Logger('SettingsPage');
+class SettingsException implements Exception {
+  final String message;
+  final dynamic originalError;
+
+  SettingsException(this.message, [this.originalError]);
+
+  @override
+  String toString() =>
+      'SettingsException: $message${originalError != null ? '\nOriginal error: $originalError' : ''}';
+}
 
 class SettingsPage extends StatefulWidget {
   final AudioController audioController;
@@ -21,12 +32,15 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  static final Logger _log = Logger('SettingsPage');
   late final SettingsController _settingsController;
-  double _reverbRoomSize = AudioController.minFilterValue;
-  double _delayTime = AudioController.minFilterValue;
-  double _delayDecay = AudioController.minFilterValue;
-  double _biquadFrequency = AudioController.minFilterValue;
-  double _biquadWet = AudioController.minFilterValue;
+
+  // Initialize with AudioConfig defaults instead of AudioController constants
+  double _reverbRoomSize = AudioConfig.defaultReverbRoomSize;
+  double _delayTime = AudioConfig.defaultEchoDelay;
+  double _delayDecay = AudioConfig.defaultEchoDecay;
+  double _biquadFrequency = AudioConfig.defaultBiquadFrequency;
+  double _biquadWet = AudioConfig.defaultBiquadWet;
 
   SoundType _selectedSound = SoundType.wurli;
 
@@ -39,72 +53,101 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _loadCurrentSettings() {
     try {
-      final settings = _settingsController.getCurrentSettings();
+      final currentSettings = widget.audioController.getCurrentEffectSettings();
       final currentSound = widget.audioController.currentInstrument;
 
       setState(() {
         _selectedSound =
             _settingsController.getSoundTypeFromString(currentSound);
-        // Load biquad settings
-        _biquadWet = settings['biquadWet']!.clamp(
-            AudioController.minFilterValue, AudioController.maxFilterValue);
-        // Frequency is already normalized (0-1)
-        _biquadFrequency = settings['biquadFrequency']!.clamp(
-            AudioController.minFilterValue, AudioController.maxFilterValue);
-        // Load reverb settings
-        _reverbRoomSize = settings['roomSize']!.clamp(
-            AudioController.minFilterValue, AudioController.maxFilterValue);
-        // Load delay settings
-        _delayTime = settings['delay']!.clamp(
-            AudioController.minFilterValue, AudioController.maxFilterValue);
-        _delayDecay = settings['decay']!.clamp(
-            AudioController.minFilterValue, AudioController.maxFilterValue);
+
+        // Load all settings from current effect states
+        _biquadWet =
+            currentSettings['biquad']?['wet'] ?? AudioConfig.defaultBiquadWet;
+        _biquadFrequency = currentSettings['biquad']?['frequency'] ??
+            AudioConfig.defaultBiquadFrequency;
+        _reverbRoomSize = currentSettings['reverb']?['roomSize'] ??
+            AudioConfig.defaultReverbRoomSize;
+        _delayTime =
+            currentSettings['delay']?['delay'] ?? AudioConfig.defaultEchoDelay;
+        _delayDecay =
+            currentSettings['delay']?['decay'] ?? AudioConfig.defaultEchoDecay;
       });
-      // Apply all filter settings
-      widget.audioController
-          .applyBiquadFilter(_biquadWet, frequency: _biquadFrequency);
 
-      widget.audioController
-          .applyReverbFilter(_reverbRoomSize, roomSize: _reverbRoomSize);
+      // Apply effects using the new system
+      _applyCurrentEffects();
 
-      widget.audioController
-          .applyDelayFilter(_delayTime, delay: _delayTime, decay: _delayDecay);
       _log.fine('Settings loaded successfully');
     } catch (e, stackTrace) {
-      final error = e is SettingsException
-          ? e
-          : SettingsException('Failed to load settings', e);
-      _log.severe('Settings loading error', error, stackTrace);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load settings: ${error.message}')),
-        );
-      }
-
-      setState(() {
-        _biquadFrequency = AudioController.minFilterValue;
-        _reverbRoomSize = AudioController.minFilterValue;
-        _delayTime = AudioController.minFilterValue;
-        _delayDecay = AudioController.minFilterValue;
-      });
+      _handleSettingsError(e, stackTrace);
     }
+  }
+
+  void _applyCurrentEffects() {
+    // Apply biquad effect
+    widget.audioController.applyEffect(
+      AudioEffectType.biquad,
+      {
+        'intensity': _biquadWet,
+        'frequency': _biquadFrequency,
+      },
+    );
+
+    // Apply reverb effect
+    widget.audioController.applyEffect(
+      AudioEffectType.reverb,
+      {
+        'intensity': _reverbRoomSize,
+        'roomSize': _reverbRoomSize,
+      },
+    );
+
+    // Apply delay effect
+    widget.audioController.applyEffect(
+      AudioEffectType.delay,
+      {
+        'intensity': _delayTime,
+        'delay': _delayTime,
+        'decay': _delayDecay,
+      },
+    );
+  }
+
+  void _handleSettingsError(dynamic error, StackTrace stackTrace) {
+    final settingsError = error is SettingsException
+        ? error
+        : SettingsException('Failed to load settings', error);
+    _log.severe('Settings loading error', settingsError, stackTrace);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Failed to load settings: ${settingsError.message}')),
+      );
+    }
+
+    // Reset to defaults if loading fails
+    setState(() {
+      _biquadFrequency = AudioConfig.defaultBiquadFrequency;
+      _biquadWet = AudioConfig.defaultBiquadWet;
+      _reverbRoomSize = AudioConfig.defaultReverbRoomSize;
+      _delayTime = AudioConfig.defaultEchoDelay;
+      _delayDecay = AudioConfig.defaultEchoDecay;
+    });
   }
 
   void _handleSoundSelection(Set<SoundType> selection) {
     if (selection.isEmpty) return;
-    final previousRoomSize = _reverbRoomSize;
-    final previousDelayTime = _delayTime;
-    final previousDelayDecay = _delayDecay;
+
+    // Save current effect settings
+    widget.audioController.saveEffectState();
 
     setState(() {
       _selectedSound = selection.first;
       String instrumentName = _selectedSound.name;
+
       switchInstrumentSounds(instrumentName).then((_) {
-        _settingsController.updateReverbFilter(previousRoomSize);
-        _settingsController.updateDelayFilter(previousDelayTime);
-        _settingsController.updateDelayFilter(previousDelayDecay,
-            isDecay: true);
+        // Restore effect settings after instrument switch
+        widget.audioController.restoreEffectState();
         _log.info('Successfully switched instruments and restored settings');
       }).catchError((error) {
         _log.severe('Error switching instruments', error);
@@ -159,15 +202,28 @@ class _SettingsPageState extends State<SettingsPage> {
             (wetValue) {
               setState(() {
                 _biquadWet = wetValue;
-                widget.audioController
-                    .applyBiquadFilter(wetValue, frequency: _biquadFrequency);
+                // Using the new applyEffect method instead of the old applyBiquadFilter
+                widget.audioController.applyEffect(
+                  AudioEffectType.biquad,
+                  {
+                    'intensity': wetValue,
+                    'frequency': _biquadFrequency,
+                    'wet': wetValue,
+                  },
+                );
               });
             },
             (freqValue) {
               setState(() {
-                _biquadFrequency = freqValue; // Store normalized value
-                widget.audioController
-                    .applyBiquadFilter(_biquadWet, frequency: freqValue);
+                _biquadFrequency = freqValue;
+                widget.audioController.applyEffect(
+                  AudioEffectType.biquad,
+                  {
+                    'intensity': _biquadWet,
+                    'frequency': freqValue,
+                    'wet': _biquadWet,
+                  },
+                );
               });
             },
           ),

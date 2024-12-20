@@ -1,7 +1,8 @@
-import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:logging/logging.dart';
 import 'package:momu_player/controller/audio_controller.dart';
 import '../model/settings_model.dart';
+import '../audio/audio_config.dart';
+import 'audio_effects_controller.dart';
 
 final Logger _log = Logger('SettingsController');
 
@@ -12,12 +13,15 @@ class SettingsController {
 
   void updateReverbFilter(double value) {
     try {
-      final freeverbFilter = audioController.soloud.filters.freeverbFilter;
-      if (!freeverbFilter.isActive) {
-        freeverbFilter.activate();
-      }
-      freeverbFilter.roomSize.value = value;
-      _log.info('Updated reverb room size to: $value');
+      audioController.applyEffect(
+        AudioEffectType.reverb,
+        {
+          'intensity': value,
+          'roomSize': value,
+          'wet': value,
+        },
+      );
+      _log.info('Updated reverb settings to: $value');
     } catch (e) {
       _log.severe('Failed to update reverb settings: $e');
     }
@@ -25,18 +29,21 @@ class SettingsController {
 
   void updateDelayFilter(double value, {bool isDecay = false}) {
     try {
-      final echoFilter = audioController.soloud.filters.echoFilter;
+      final parameters = isDecay
+          ? {
+              'intensity': AudioConfig.defaultEchoWet,
+              'decay': value,
+              'delay': AudioConfig.defaultEchoDelay,
+              'wet': AudioConfig.defaultEchoWet,
+            }
+          : {
+              'intensity': AudioConfig.defaultEchoWet,
+              'delay': value,
+              'decay': AudioConfig.defaultEchoDecay,
+              'wet': AudioConfig.defaultEchoWet,
+            };
 
-      if (!echoFilter.isActive) {
-        echoFilter.activate();
-      }
-
-      if (isDecay) {
-        echoFilter.decay.value = value;
-      } else {
-        echoFilter.delay.value = value;
-      }
-
+      audioController.applyEffect(AudioEffectType.delay, parameters);
       _log.info('Updated delay ${isDecay ? "decay" : "time"} to: $value');
     } catch (e) {
       _log.severe('Failed to update delay settings: $e');
@@ -45,14 +52,15 @@ class SettingsController {
 
   void updateBiQuadFilter(double value) {
     try {
-      final biquadFilter = audioController.soloud.filters.biquadResonantFilter;
-      if (!biquadFilter.isActive) {
-        biquadFilter.activate();
-      }
-      // Map the 0-1 value to frequency range (20Hz - 20000Hz)
-      final frequency = (value * 10000.0 + 20.0).clamp(20.0, 20000.0);
-      biquadFilter.frequency.value = frequency;
-      _log.info('Updated biquad frequency to: $frequency Hz');
+      audioController.applyEffect(
+        AudioEffectType.biquad,
+        {
+          'intensity': AudioConfig.defaultBiquadWet,
+          'frequency': value,
+          'resonance': AudioConfig.defaultBiquadResonance,
+        },
+      );
+      _log.info('Updated biquad frequency to: $value');
     } catch (e) {
       _log.severe('Failed to update biquad settings: $e');
     }
@@ -60,36 +68,28 @@ class SettingsController {
 
   Map<String, double> getCurrentSettings() {
     try {
-      final SoLoud soloud = audioController.soloud;
-
-      if (!soloud.isInitialized ||
-          (!soloud.filters.freeverbFilter.isActive &&
-              !soloud.filters.echoFilter.isActive &&
-              !soloud.filters.biquadResonantFilter.isActive)) {
-        _log.info('Filters not active, returning last used values');
-        return audioController.getLastUsedSettings();
-      }
+      final allSettings = audioController.getCurrentEffectSettings();
 
       return {
-        'biquadFrequency': soloud.filters.biquadResonantFilter.isActive
-            ? soloud.filters.biquadResonantFilter.frequency.value
-            : audioController.getLastUsedSettings()['biquadFrequency']!,
-        'biquadWet': soloud.filters.biquadResonantFilter.isActive
-            ? soloud.filters.biquadResonantFilter.wet.value
-            : audioController.getLastUsedSettings()['biquadWet']!,
-        'roomSize': soloud.filters.freeverbFilter.isActive
-            ? soloud.filters.freeverbFilter.roomSize.value
-            : audioController.getLastUsedSettings()['roomSize']!,
-        'delay': soloud.filters.echoFilter.isActive
-            ? soloud.filters.echoFilter.delay.value
-            : audioController.getLastUsedSettings()['delay']!,
-        'decay': soloud.filters.echoFilter.isActive
-            ? soloud.filters.echoFilter.decay.value
-            : audioController.getLastUsedSettings()['decay']!,
+        'biquadFrequency': allSettings['biquad']?['frequency'] ??
+            AudioConfig.defaultBiquadFrequency,
+        'biquadWet':
+            allSettings['biquad']?['wet'] ?? AudioConfig.defaultBiquadWet,
+        'roomSize': allSettings['reverb']?['roomSize'] ??
+            AudioConfig.defaultReverbRoomSize,
+        'delay': allSettings['delay']?['delay'] ?? AudioConfig.defaultEchoDelay,
+        'decay': allSettings['delay']?['decay'] ?? AudioConfig.defaultEchoDecay,
       };
     } catch (e) {
       _log.severe('Error getting current settings', e);
-      return audioController.getLastUsedSettings();
+      // Return default values if something goes wrong
+      return {
+        'biquadFrequency': AudioConfig.defaultBiquadFrequency,
+        'biquadWet': AudioConfig.defaultBiquadWet,
+        'roomSize': AudioConfig.defaultReverbRoomSize,
+        'delay': AudioConfig.defaultEchoDelay,
+        'decay': AudioConfig.defaultEchoDecay,
+      };
     }
   }
 
