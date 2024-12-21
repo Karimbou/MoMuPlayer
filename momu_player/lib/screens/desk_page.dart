@@ -1,108 +1,189 @@
-// Import necessary Flutter packages and local components and controllers
 import 'package:flutter/material.dart';
-import 'package:momu_player/components/sound_key.dart';
-import 'package:momu_player/constants.dart';
-import 'package:momu_player/controller/audio_controller.dart';
+import 'package:logging/logging.dart';
+import '../audio/audio_config.dart';
+import '../components/sound_key.dart';
+import '../constants.dart';
+import '../controller/audio_controller.dart';
+import '../controller/audio_effects_controller.dart';
 import 'settings_page.dart';
 import '../components/slider_layout.dart';
-import 'package:momu_player/components/segmentedbutton_layout.dart';
-import 'package:logging/logging.dart';
+import '../components/segmentedbutton_layout.dart';
 
-final Logger _log = Logger('DeskPage'); // Add this line
+enum Filter {
+  none,
+  reverb,
+  delay,
+  biquad,
+}
 
-// Main DeskPage widget that serves as the primary screen for the sound pads
+// Move to a separate file if more configs are added
+class SoundKeyConfig {
+  final Color color;
+  final String? soundPath;
+
+  const SoundKeyConfig({
+    required this.color,
+    this.soundPath,
+  });
+}
+
 class DeskPage extends StatefulWidget {
   final String title;
-  final AudioController audioController; // Controller to handle audio playback
+  final AudioController audioController;
 
   const DeskPage({
     super.key,
     required this.title,
     required this.audioController,
   });
+
   @override
   State<DeskPage> createState() => _DeskPageState();
 }
 
-// Enum to define available filter types
-enum Filter { off, reverb, delay, biquad }
-
 class _DeskPageState extends State<DeskPage> {
-  double wetValue = 0.5; // Controls the intensity of the audio effect
-  Filter selectedFilter = Filter.off; // Currently selected audio filter
+  static final Logger _log = Logger('DeskPage');
+
+  // Sound key configurations
+  static const List<List<SoundKeyConfig>> soundKeyConfigs = [
+    [
+      SoundKeyConfig(color: kTabColorGreen, soundPath: 'note_c'),
+      SoundKeyConfig(color: kTabColorBlue, soundPath: 'note_d'),
+    ],
+    [
+      SoundKeyConfig(color: kTabColorOrange, soundPath: 'note_e'),
+      SoundKeyConfig(color: kTabColorPink, soundPath: 'note_f'),
+    ],
+    [
+      SoundKeyConfig(color: kTabColorYellow, soundPath: 'note_g'),
+      SoundKeyConfig(color: kTabColorPurple, soundPath: 'note_a'),
+    ],
+    [
+      SoundKeyConfig(color: kTabColorWhite, soundPath: 'note_b'),
+      SoundKeyConfig(color: kTabColorRed, soundPath: 'note_c_oc'),
+    ],
+  ];
+
+  // State
+  double wetValue = AudioConfig.defaultReverbWet;
+  Filter selectedFilter = Filter.none;
 
   @override
   void initState() {
     super.initState();
-    widget.audioController.initialized.then((_) {
-      if (mounted) {
-        final currentValues = widget.audioController.getCurrentFilterValues();
-        setState(() {
-          wetValue = currentValues['reverbWet']!;
-          if (widget.audioController.soloud.filters.freeverbFilter.isActive) {
-            selectedFilter = Filter.reverb;
-          } else if (widget
-              .audioController.soloud.filters.echoFilter.isActive) {
-            selectedFilter = Filter.delay;
-          } else if (widget
-              .audioController.soloud.filters.biquadResonantFilter.isActive) {
-            // Add this check
-            selectedFilter = Filter.biquad;
-          } else {
-            selectedFilter = Filter.off;
-          }
-        });
+    _initializeEffects();
+  }
+
+  Future<void> _initializeEffects() async {
+    await widget.audioController.initialized;
+    if (!mounted) return;
+
+    final currentSettings = widget.audioController.getCurrentEffectSettings();
+    setState(() {
+      if (currentSettings['reverb']?['wet'] != null) {
+        wetValue = currentSettings['reverb']!['wet']!;
+        selectedFilter = Filter.reverb;
+      } else if (currentSettings['delay']?['wet'] != null) {
+        wetValue = currentSettings['delay']!['wet']!;
+        selectedFilter = Filter.delay;
+      } else if (currentSettings['biquad']?['wet'] != null) {
+        wetValue = currentSettings['biquad']!['wet']!;
+        selectedFilter = Filter.biquad;
+      } else {
+        selectedFilter = Filter.none;
       }
     });
   }
 
-  // Handler for when user changes the filter type
+  // Effect handling methods
   void _handleFilterChange(Set<Filter> value) {
+    if (value.isEmpty) return;
     setState(() {
       selectedFilter = value.first;
       _applyFilter();
     });
   }
 
-  // Applies the selected filter with current wetValue
   void _applyFilter() {
     try {
+      if (selectedFilter == Filter.none) {
+        widget.audioController.deactivateEffects();
+        return;
+      }
+
+      final effectParams = <String, double>{
+        'wet': wetValue,
+        'intensity': wetValue,
+      };
+
       switch (selectedFilter) {
         case Filter.reverb:
-          // Apply reverb effect
-          widget.audioController.applyReverbFilter(wetValue);
-          _log.info('Applied reverb filter with intensity: $wetValue');
+          effectParams['roomSize'] = wetValue;
+          widget.audioController.applyEffect(
+            AudioEffectType.reverb,
+            effectParams,
+          );
           break;
+
         case Filter.delay:
-          // Apply delay effect
-          widget.audioController.applyDelayFilter(wetValue);
-          _log.info('Applied delay filter with intensity: $wetValue');
+          effectParams['delay'] = wetValue;
+          effectParams['decay'] = AudioConfig.defaultEchoDecay;
+          widget.audioController.applyEffect(
+            AudioEffectType.delay,
+            effectParams,
+          );
           break;
+
         case Filter.biquad:
-          widget.audioController.applyBiquadFilter(wetValue);
-          _log.info('Applied biquad filter with intensity: $wetValue');
+          effectParams['frequency'] = wetValue;
+          effectParams['resonance'] = 0.5;
+          effectParams['type'] = 0.0; // Lowpass filter
+          widget.audioController.applyEffect(
+            AudioEffectType.biquad,
+            effectParams,
+          );
           break;
-        case Filter.off:
-          // Turn off all effects
-          widget.audioController.removeFilters();
-          _log.info('Removed all filters');
+
+        case Filter.none:
+          // This case is handled above
           break;
       }
+      _log.info(
+          'Applied ${selectedFilter.name} effect with intensity: $wetValue');
     } catch (e) {
-      _log.severe('Failed to apply filter: $e');
+      _log.severe('Failed to apply effect', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to apply effect: ${e.toString()}')),
+        );
+      }
     }
   }
 
-  // Creates a row of sound keys based on provided configurations
+  // Sound key handling methods
+  void _handleSoundKeyPress(String? soundPath) {
+    if (soundPath == null) return;
+
+    try {
+      widget.audioController.playSound(soundPath);
+    } catch (e) {
+      _log.severe('Failed to play sound: $soundPath', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to play sound: ${e.toString()}')),
+        );
+      }
+    }
+  }
+
+  // UI Building methods
   Widget _buildSoundKeyRow(List<SoundKeyConfig> configs) {
     return Expanded(
       child: Row(
         children: configs
             .map((config) => Expanded(
                   child: SoundKey(
-                    onPress: () => config.soundPath != null
-                        ? widget.audioController.playSound(config.soundPath!)
-                        : null,
+                    onPress: () => _handleSoundKeyPress(config.soundPath),
                     colour: config.color,
                   ),
                 ))
@@ -111,33 +192,21 @@ class _DeskPageState extends State<DeskPage> {
     );
   }
 
-  // Builds the filter control section UI
   Widget _buildFilterSection() {
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.only(left: 15.0, right: 15.0),
+        padding: const EdgeInsets.symmetric(horizontal: 15.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _buildFilterButtons(),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(child: _buildEffectSlider()),
-              ],
-            ),
+            _buildFilterButtons(),
+            _buildEffectSlider(),
           ],
         ),
       ),
     );
   }
 
-  // Creates segmented buttons for filter selection
   Widget _buildFilterButtons() {
     return SegmentedButtonTheme(
       data: segmentedButtonLayout(context),
@@ -146,18 +215,22 @@ class _DeskPageState extends State<DeskPage> {
           ButtonSegment<Filter>(
             value: Filter.biquad,
             label: Text('Filter'),
+            tooltip: 'Frequency Filter',
           ),
           ButtonSegment<Filter>(
             value: Filter.reverb,
             label: Text('Reverb'),
+            tooltip: 'Room Reverb Effect',
           ),
           ButtonSegment<Filter>(
             value: Filter.delay,
             label: Text('Delay'),
+            tooltip: 'Echo Delay Effect',
           ),
           ButtonSegment<Filter>(
-            value: Filter.off,
+            value: Filter.none,
             label: Text('Off'),
+            tooltip: 'No Effects',
           ),
         ],
         selected: {selectedFilter},
@@ -166,7 +239,6 @@ class _DeskPageState extends State<DeskPage> {
     );
   }
 
-  // Creates a slider to control effect intensity
   Widget _buildEffectSlider() {
     return SliderTheme(
       data: getCustomSliderTheme(context),
@@ -174,10 +246,8 @@ class _DeskPageState extends State<DeskPage> {
         children: [
           Slider(
             value: wetValue,
-            min: AudioController
-                .minFilterValue, // Use constant from AudioController
-            max: AudioController
-                .maxFilterValue, // Use constant from AudioController
+            min: AudioConfig.minValue,
+            max: AudioConfig.maxValue,
             onChanged: (double newValue) {
               setState(() {
                 wetValue = newValue;
@@ -190,50 +260,30 @@ class _DeskPageState extends State<DeskPage> {
     );
   }
 
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SettingsPage(
+          audioController: widget.audioController,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Define configuration for sound keys including colors and sound paths
-    final soundKeyConfigs = [
-      [
-        const SoundKeyConfig(color: kTabColorGreen, soundPath: 'note_c'),
-        const SoundKeyConfig(color: kTabColorBlue, soundPath: 'note_d'),
-      ],
-      [
-        const SoundKeyConfig(color: kTabColorOrange, soundPath: 'note_e'),
-        const SoundKeyConfig(color: kTabColorPink, soundPath: 'note_f'),
-      ],
-      [
-        const SoundKeyConfig(color: kTabColorYellow, soundPath: 'note_g'),
-        const SoundKeyConfig(color: kTabColorPurple, soundPath: 'note_a'),
-      ],
-      [
-        const SoundKeyConfig(color: kTabColorWhite, soundPath: 'note_b'),
-        const SoundKeyConfig(color: kTabColorRed, soundPath: 'note_c_oc'),
-      ],
-    ];
-
-    // Build the main screen layout
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
-          // Settings button in app bar
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SettingsPage(
-                    audioController: widget.audioController,
-                  ),
-                ),
-              );
-            },
+            tooltip: 'Settings',
+            onPressed: _navigateToSettings,
           ),
         ],
       ),
-      // Main body layout with sound keys and filter section
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -244,5 +294,15 @@ class _DeskPageState extends State<DeskPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    try {
+      widget.audioController.saveEffectState();
+    } catch (e) {
+      _log.warning('Failed to save effect state during disposal', e);
+    }
+    super.dispose();
   }
 }

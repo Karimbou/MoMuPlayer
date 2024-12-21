@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'dart:math'
-    as math; // Add this at the top of the file with other imports
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:logging/logging.dart';
+import '../audio/audio_config.dart';
 import '../audio/load_assets.dart';
+import 'audio_effects_controller.dart';
 
+// Exception handling remains the same
 class AudioControllerException implements Exception {
   final String message;
   final dynamic originalError;
@@ -17,43 +18,15 @@ class AudioControllerException implements Exception {
 }
 
 class AudioController {
-  // CONSTANTS
+  // LOGGING
   static final Logger _log = Logger('AudioController');
-  static const double minFilterValue = 0.0;
-  static const double maxFilterValue = 1.0;
-  static const int initializationTimeoutSeconds =
-      30; // Increased from 10 to 30 seconds
-
-  // Default filter values
-// Delay
-  static const double defaultEchoWet = 0.3;
-  static const double defaultEchoDelay = 0.2;
-  static const double defaultEchoDecay = 0.3;
-  // Reverb
-  static const double defaultReverbWet = 0.3;
-  static const double defaultReverbRoomSize = 0.5;
-  // BiQuad
-  static const double defaultBiquadFrequency = 0.5;
-  static const double defaultBiquadResonance = 1.0;
-  static const double defaultBiquadType = 0.0;
-
-  // Add fields to store last used filter values
-  double _lastReverbWet = defaultReverbWet;
-  double _lastReverbRoomSize = defaultReverbRoomSize;
-  double _lastEchoWet = defaultEchoWet;
-  double _lastEchoDelay = defaultEchoDelay;
-  double _lastEchoDecay = defaultEchoDecay;
-  double _lastBiquadFrequency =
-      defaultBiquadFrequency; // Normalized value (0-1)
-  double _biquadFrequency = (10.0 * math.pow(1600.0, defaultBiquadFrequency))
-      .clamp(10.0, 16000.0); // Actual frequency in Hz
-  final double _biquadResonance = defaultBiquadResonance;
-  final double _biquadType = defaultBiquadType;
-  double _lastBiquadResonance = defaultBiquadResonance;
-  double _lastBiquadWet = defaultEchoWet;
 
   // PRIVATE FIELDS
+  // Core audio functionality
   late final SoLoud _soloud;
+  // Centralized effects management
+  late final AudioEffectsController _effectsController;
+  // Sound storage
   final Map<String, AudioSource> _preloadedSounds = {};
 
   // State tracking
@@ -61,48 +34,32 @@ class AudioController {
   Future<void>? _initializationFuture;
 
   // Music state
-  double _musicVolume = maxFilterValue;
+  double _musicVolume = AudioConfig.maxValue;
   bool _musicEnabled = true;
   bool _soundEnabled = true;
   SoundHandle? _currentMusicHandle;
   String? _currentMusicPath;
-
-  // Filter state
-  double _echoWet = defaultEchoWet;
-  double _echoDelay = defaultEchoDelay;
-  double _echoDecay = defaultEchoDecay;
-  double _reverbWet = defaultReverbWet;
-  double _reverbRoomSize = defaultReverbRoomSize;
+  final String _currentInstrument = AudioConfig.defaultInstrument;
 
   // PUBLIC GETTERS
   SoLoud get soloud => _soloud;
-
-  // State getters
   bool get isInitialized => _isInitialized;
   Future<void> get initialized => _initializationFuture ?? Future.value();
-
-  // Music getters
   double get musicVolume => _musicVolume;
   bool get isMusicEnabled => _musicEnabled;
   bool get isSoundEnabled => _soundEnabled;
   bool get isMusicPlaying => _currentMusicHandle != null;
-
-  // Filter getters
-  double get echoWet => _echoWet;
-  double get echoDelay => _echoDelay;
-  double get echoDecay => _echoDecay;
-  double get reverbWet => _reverbWet;
-  double get reverbRoomSize => _reverbRoomSize;
-
-  String currentInstrument = 'wurli';
+  String get currentInstrument => _currentInstrument;
 
   // CONSTRUCTOR
   AudioController() : _initializationFuture = null {
     _soloud = SoLoud.instance;
+    // Initialize effects controller with our soloud instance
+    _effectsController = AudioEffectsController(_soloud);
     _initializationFuture = initialize();
   }
 
-  // Initializes the audio controller
+  // INITIALIZATION METHODS
   Future<void> initialize() async {
     try {
       if (_isInitialized) {
@@ -110,14 +67,13 @@ class AudioController {
         return;
       }
 
-      _log.info('Starting audio controller initialization...');
-
       return await Future.any([
         _initializeImpl(),
-        Future.delayed(const Duration(seconds: initializationTimeoutSeconds))
+        Future.delayed(const Duration(
+                seconds: AudioConfig.initializationTimeoutSeconds))
             .then((_) {
           throw AudioControllerException(
-              'Initialization timed out after $initializationTimeoutSeconds seconds');
+              'Initialization timed out after ${AudioConfig.initializationTimeoutSeconds} seconds');
         }),
       ]);
     } catch (e) {
@@ -132,8 +88,8 @@ class AudioController {
   }
 
   Future<void> _initializeImpl() async {
-    // Move existing initialization code here
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(
+        const Duration(milliseconds: AudioConfig.initializationDelayMs));
 
     if (_soloud.isInitialized) {
       _log.warning('SoLoud engine is already initialized');
@@ -142,14 +98,22 @@ class AudioController {
 
     try {
       await _soloud.init();
+      _configureInitialAudioSettings();
+      await _loadAudioAssets();
+      _isInitialized = true;
+      _log.info('Audio controller initialized successfully');
     } catch (e) {
       throw AudioControllerException('Failed to initialize SoLoud engine', e);
     }
-    _log.info('SoLoud engine initialized');
-    _soloud.setVisualizationEnabled(false);
-    _soloud.setGlobalVolume(maxFilterValue);
-    _soloud.setMaxActiveVoiceCount(36);
+  }
 
+  void _configureInitialAudioSettings() {
+    _soloud.setVisualizationEnabled(false);
+    _soloud.setGlobalVolume(AudioConfig.maxValue);
+    _soloud.setMaxActiveVoiceCount(AudioConfig.maxActiveVoices);
+  }
+
+  Future<void> _loadAudioAssets() async {
     _log.info('Setting up and loading assets...');
     setupLoadAssets(_soloud, _preloadedSounds);
     await loadAssets();
@@ -160,225 +124,67 @@ class AudioController {
     }
   }
 
-  // FILTER METHODS
-
-// Get current active filter values
-  Map<String, double> getCurrentFilterValues() {
-    if (!_soloud.isInitialized) return getLastUsedSettings();
-
-    return {
-      'roomSize': _soloud.filters.freeverbFilter.isActive
-          ? _soloud.filters.freeverbFilter.roomSize.value
-          : _lastReverbRoomSize,
-      'delay': _soloud.filters.echoFilter.isActive
-          ? _soloud.filters.echoFilter.delay.value
-          : _lastEchoDelay,
-      'decay': _soloud.filters.echoFilter.isActive
-          ? _soloud.filters.echoFilter.decay.value
-          : _lastEchoDecay,
-      'reverbWet': _soloud.filters.freeverbFilter.isActive
-          ? _soloud.filters.freeverbFilter.wet.value
-          : _lastReverbWet,
-      'echoWet': _soloud.filters.echoFilter.isActive
-          ? _soloud.filters.echoFilter.wet.value
-          : _lastEchoWet,
-      'biquadResonance': _soloud.filters.biquadResonantFilter.isActive
-          ? _soloud.filters.biquadResonantFilter.resonance.value
-          : _lastBiquadResonance,
-      // Return the normalized frequency value that was last set by the user
-      'biquadFrequency': _lastBiquadFrequency,
-      'biquadWet': _soloud.filters.biquadResonantFilter.isActive
-          ? _soloud.filters.biquadResonantFilter.wet.value
-          : _lastBiquadWet,
-    };
-  }
-
-// Add this method to restore filter states
-  void restoreFilterStates() {
-    _log.info('Starting to restore filter states...');
-
-    if (_soloud.filters.freeverbFilter.isActive) {
-      _log.fine(
-          'Restoring reverb filter - Wet: $_lastReverbWet, Room Size: $_lastReverbRoomSize');
-      applyReverbFilter(_lastReverbWet, roomSize: _lastReverbRoomSize);
-    }
-
-    if (_soloud.filters.echoFilter.isActive) {
-      _log.fine(
-          'Restoring delay filter - Wet: $_lastEchoWet, Delay: $_lastEchoDelay, Decay: $_lastEchoDecay');
-      applyDelayFilter(_lastEchoWet,
-          delay: _lastEchoDelay, decay: _lastEchoDecay);
-    }
-
-    if (_soloud.filters.biquadResonantFilter.isActive) {
-      _log.fine(
-          'Restoring biquad filter - Wet: $_lastBiquadWet, Frequency: $_lastBiquadFrequency, Resonance: $_lastBiquadResonance');
-      applyBiquadFilter(_lastBiquadWet, frequency: _lastBiquadFrequency);
-      _soloud.filters.biquadResonantFilter.resonance.value =
-          _lastBiquadResonance;
-    }
-
-    _log.info('Filter state restoration completed');
-  }
-
-// Reverb Filter: Applys reverb filter to the audio controller.
-// The filter is applied with a specified intensity and optional room size and wetness values.
-  void applyReverbFilter(double intensity, {double? roomSize, double? wet}) {
+  // AUDIO EFFECT METHODS
+  // These methods now delegate all filter operations to the AudioEffectsController
+  /// Applies an audio effect with specified parameters
+  void applyEffect(AudioEffectType type, Map<String, double> parameters) {
     try {
-      if (!_soloud.isInitialized) {
-        _log.warning('Cannot apply reverb - audio controller not initialized');
-        return;
-      }
-
-      _reverbWet = (wet ?? intensity).clamp(minFilterValue, maxFilterValue);
-      _soloud.filters.freeverbFilter.wet.value = _reverbWet;
-      _reverbRoomSize =
-          (roomSize ?? intensity).clamp(minFilterValue, maxFilterValue);
-
-      if (!_soloud.filters.freeverbFilter.isActive) {
-        _soloud.filters.freeverbFilter.activate();
-      }
-      _soloud.filters.freeverbFilter.wet.value = _reverbWet;
-      _soloud.filters.freeverbFilter.roomSize.value = _reverbRoomSize;
+      _effectsController.applyEffect(type, parameters);
+      _log.fine('Applied effect: $type with parameters: $parameters');
     } catch (e) {
-      _log.severe('Failed to apply reverb filter', e);
+      _log.severe('Failed to apply effect: $type', e);
     }
   }
 
-// Delay Filter: Applys a delay to the audio signal.
-  void applyDelayFilter(double intensity,
-      {double? delay, double? decay, double? wet}) {
+  /// Deactivates all effects without changing their settings
+  void deactivateEffects() {
     try {
-      if (!_soloud.isInitialized) {
-        _log.warning('Cannot apply delay - audio controller not initialized');
-        return;
-      }
-
-      _echoWet = (wet ?? intensity).clamp(minFilterValue, maxFilterValue);
-      _soloud.filters.echoFilter.wet.value = _echoWet;
-      _echoDelay = (delay ?? intensity).clamp(minFilterValue, maxFilterValue);
-      _echoDecay =
-          (decay ?? defaultEchoDecay).clamp(minFilterValue, maxFilterValue);
-
-      if (!_soloud.filters.echoFilter.isActive) {
-        _soloud.filters.echoFilter.activate();
-      }
-      _soloud.filters.echoFilter.wet.value = _echoWet;
-      _soloud.filters.echoFilter.delay.value = _echoDelay;
-      _soloud.filters.echoFilter.decay.value = _echoDecay;
+      _effectsController.deactivateAllEffects();
+      _log.info('All effects deactivated');
     } catch (e) {
-      _log.severe('Failed to apply delay filter', e);
+      _log.severe('Failed to deactivate effects', e);
     }
   }
 
-// BiQuad Filter: Apply a biquad filter to the audio signal
-  void applyBiquadFilter(double intensity, {double? frequency}) {
+  /// Gets the current settings of all effects
+  Map<String, Map<String, double>> getCurrentEffectSettings() {
+    return _effectsController.getAllEffectSettings();
+  }
+
+  /// Resets all effects to their default values
+  void resetEffects() {
     try {
-      if (!_soloud.isInitialized) {
-        _log.warning(
-            'Cannot apply biquad filter - audio controller not initialized');
-        return;
-      }
-
-      final biquadFilter = _soloud.filters.biquadResonantFilter;
-
-      if (!biquadFilter.isActive) {
-        biquadFilter.activate();
-      }
-
-      // Store and apply wetness
-      _lastBiquadWet = intensity.clamp(minFilterValue, maxFilterValue);
-      biquadFilter.wet.value = _lastBiquadWet;
-
-      // Handle frequency with correct range (10Hz - 16000Hz)
-      if (frequency != null) {
-        if (frequency < minFilterValue || frequency > maxFilterValue) {
-          _log.warning(
-              'Frequency value out of range: $frequency. Clamping to valid range.');
-        }
-        // Store the normalized frequency (0-1)
-        _lastBiquadFrequency = frequency.clamp(minFilterValue, maxFilterValue);
-        // Convert normalized frequency to Hz for the filter
-        _biquadFrequency = (10.0 * math.pow(1600.0, _lastBiquadFrequency))
-            .clamp(10.0, 16000.0);
-      }
-
-      biquadFilter.frequency.value = _biquadFrequency;
-      biquadFilter.resonance.value = _biquadResonance;
-      biquadFilter.type.value = _biquadType;
-
-      _log.info(
-          'Applied biquad filter - Frequency: $_biquadFrequency Hz, Normalized: $_lastBiquadFrequency, Wet: $_lastBiquadWet');
+      _effectsController.resetAllEffects();
+      _log.info('Reset all effects to default values');
     } catch (e) {
-      _log.severe('Failed to apply biquad filter', e);
+      _log.severe('Failed to reset effects', e);
     }
   }
 
-  void resetFiltersToDefault() {
+  /// Saves the current state of all effects
+  void saveEffectState() {
     try {
-      applyDelayFilter(defaultEchoWet,
-          delay: defaultEchoDelay, decay: defaultEchoDecay);
-      applyReverbFilter(defaultReverbWet, roomSize: defaultReverbRoomSize);
+      _effectsController.saveCurrentState();
+      _log.info('Saved current effect state');
     } catch (e) {
-      _log.severe('Failed to reset filters to default', e);
+      _log.severe('Failed to save effect state', e);
     }
   }
 
-// Removes the Filters from the Audiosignal
-  void removeFilters() {
+  /// Restores previously saved effect state
+  void restoreEffectState() {
     try {
-      if (!_soloud.isInitialized) {
-        _log.warning(
-            'Cannot remove filters - audio controller not initialized');
-        return;
-      }
-
-      // Store current values before removing filters
-      if (_soloud.filters.freeverbFilter.isActive) {
-        _lastReverbWet = _reverbWet;
-        _lastReverbRoomSize = _reverbRoomSize;
-        _soloud.filters.freeverbFilter.deactivate();
-      }
-      if (_soloud.filters.echoFilter.isActive) {
-        _lastEchoWet = _echoWet;
-        _lastEchoDelay = _echoDelay;
-        _lastEchoDecay = _echoDecay;
-        _soloud.filters.echoFilter.deactivate();
-      }
-      if (_soloud.filters.biquadResonantFilter.isActive) {
-        // We don't need to update _lastBiquadFrequency here as it's already
-        // being maintained in applyBiquadFilter
-        _lastBiquadResonance = _biquadResonance;
-        _lastBiquadWet = _soloud.filters.biquadResonantFilter.wet.value;
-        _soloud.filters.biquadResonantFilter.deactivate();
-      }
-
-      _log.info(
-          'Successfully removed filters. Last frequency: $_lastBiquadFrequency');
+      _effectsController.restoreState();
+      _log.info('Restored effect state');
     } catch (e) {
-      _log.severe('Failed to remove filters', e);
+      _log.severe('Failed to restore effect state', e);
     }
-  }
-
-  // Add method to get last used settings
-  Map<String, double> getLastUsedSettings() {
-    return {
-      'roomSize': _lastReverbRoomSize,
-      'delay': _lastEchoDelay,
-      'decay': _lastEchoDecay,
-      'reverbWet': _lastReverbWet,
-      'echoWet': _lastEchoWet,
-      'biquadFrequency': _lastBiquadFrequency,
-      'biquadWet': _lastBiquadWet,
-      'biquadResonance': _lastBiquadResonance,
-    };
   }
 
   // PLAYBACK METHODS
+  /// Plays a sound by its key
   Future<void> playSound(String soundKey) async {
-    // Wait for initialization to complete
     await initialized;
-
     if (!_soundEnabled) return;
 
     try {
@@ -388,57 +194,69 @@ class AudioController {
             "Sound '$soundKey' not found. Available sounds: ${_preloadedSounds.keys.join(', ')}");
       }
       _soloud.play(source);
+      _log.fine('Playing sound: $soundKey');
     } catch (e) {
       _log.severe("Failed to play sound '$soundKey'", e);
     }
   }
 
+  /// Starts playing music from the specified path
   Future<void> startMusic(String musicPath, {bool loop = true}) async {
     if (!_musicEnabled) return;
 
     try {
       await stopMusic();
-
       final source = await _soloud.loadAsset(musicPath);
       _currentMusicHandle = await _soloud.play(source, looping: loop);
       _currentMusicPath = musicPath;
       _soloud.setVolume(_currentMusicHandle!, _musicVolume);
+      _log.info('Started music: $musicPath');
     } catch (e) {
-      _log.severe("Cannot start music '$musicPath'.", e);
+      _log.severe("Cannot start music '$musicPath'", e);
       rethrow;
     }
   }
 
+  /// Stops currently playing music
   Future<void> stopMusic() async {
     if (_currentMusicHandle != null) {
       _soloud.stop(_currentMusicHandle!);
       _currentMusicHandle = null;
       _currentMusicPath = null;
+      _log.fine('Stopped music');
     }
   }
 
   // CONTROL METHODS
+  /// Sets the volume for music playback
   void setMusicVolume(double volume) {
-    _musicVolume = volume.clamp(minFilterValue, maxFilterValue);
+    _musicVolume = volume.clamp(AudioConfig.minValue, AudioConfig.maxValue);
     if (_currentMusicHandle != null) {
       _soloud.setVolume(_currentMusicHandle!, _musicVolume);
+      _log.fine('Set music volume to: $_musicVolume');
     }
   }
 
+  /// Toggles music playback on/off
   void toggleMusic() {
     _musicEnabled = !_musicEnabled;
     if (!_musicEnabled) {
       stopMusic();
+      _log.info('Music disabled');
     } else if (_currentMusicPath != null) {
       startMusic(_currentMusicPath!);
+      _log.info('Music enabled');
     }
   }
 
+  /// Toggles sound effects on/off
   void toggleSound() {
     _soundEnabled = !_soundEnabled;
+    _log.info('Sound effects ${_soundEnabled ? 'enabled' : 'disabled'}');
   }
 
-  // Cleanup methods
+  // CLEANUP METHODS
+  /// Disposes of all resources and cleans up
   Future<void> dispose() async {
     try {
       await stopMusic();
@@ -454,6 +272,7 @@ class AudioController {
       }
 
       _isInitialized = false;
+      _log.info('Audio controller disposed successfully');
     } catch (e) {
       _log.severe('Error disposing audio controller', e);
     }
