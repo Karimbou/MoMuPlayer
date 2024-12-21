@@ -106,44 +106,46 @@ class _DeskPageState extends State<DeskPage> {
 
   void _applyFilter() {
     try {
+      if (selectedFilter == Filter.none) {
+        widget.audioController.deactivateEffects();
+        return;
+      }
+
+      final effectParams = <String, double>{
+        'wet': wetValue,
+        'intensity': wetValue,
+      };
+
       switch (selectedFilter) {
         case Filter.reverb:
+          effectParams['roomSize'] = wetValue;
           widget.audioController.applyEffect(
             AudioEffectType.reverb,
-            {
-              'intensity': wetValue,
-              'roomSize': wetValue,
-              'wet': wetValue,
-            },
+            effectParams,
           );
           break;
 
         case Filter.delay:
+          effectParams['delay'] = wetValue;
+          effectParams['decay'] = AudioConfig.defaultEchoDecay;
           widget.audioController.applyEffect(
             AudioEffectType.delay,
-            {
-              'intensity': wetValue,
-              'delay': wetValue,
-              'decay': AudioConfig.defaultEchoDecay,
-              'wet': wetValue,
-            },
+            effectParams,
           );
           break;
 
         case Filter.biquad:
+          effectParams['frequency'] = wetValue;
+          effectParams['resonance'] = 0.5;
+          effectParams['type'] = 0.0; // Lowpass filter
           widget.audioController.applyEffect(
             AudioEffectType.biquad,
-            {
-              'intensity': wetValue,
-              'frequency': wetValue,
-              'resonance': 0.5,
-              'type': 0.0, // Lowpass filter
-            },
+            effectParams,
           );
           break;
 
         case Filter.none:
-          widget.audioController.applyEffect(AudioEffectType.none, {});
+          // This case is handled above
           break;
       }
       _log.info(

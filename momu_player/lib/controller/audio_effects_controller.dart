@@ -57,7 +57,7 @@ class AudioEffectsController {
 
       switch (type) {
         case AudioEffectType.none:
-          _filterState.removeFilters(_soloud);
+          deactivateAllEffects();
           break;
 
         case AudioEffectType.reverb:
@@ -128,6 +128,17 @@ class AudioEffectsController {
       _log.info('Reset all effects to default values');
     } catch (e) {
       final error = AudioEffectsException('Failed to reset effects', e);
+      _log.severe(error.toString());
+      rethrow;
+    }
+  }
+
+  void deactivateAllEffects() {
+    try {
+      _filterState.deactivateAllFilters(_soloud);
+      _log.info('All effects deactivated');
+    } catch (e) {
+      final error = AudioEffectsException('Failed to deactivate effects', e);
       _log.severe(error.toString());
       rethrow;
     }

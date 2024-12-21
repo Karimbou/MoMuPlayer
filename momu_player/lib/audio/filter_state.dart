@@ -156,6 +156,21 @@ class FilterState {
     }
   }
 
+  void deactivateAllFilters(SoLoud soloud) {
+    try {
+      _validateSoloud(soloud);
+
+      soloud.filters.freeverbFilter.deactivate();
+      soloud.filters.echoFilter.deactivate();
+      soloud.filters.biquadResonantFilter.deactivate();
+
+      _log.info('All filters deactivated');
+    } catch (e) {
+      _log.severe('Failed to deactivate filters', e);
+      rethrow;
+    }
+  }
+
   void resetToDefault(SoLoud soloud) {
     try {
       _validateSoloud(soloud);

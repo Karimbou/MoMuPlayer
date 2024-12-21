@@ -123,9 +123,9 @@ class AudioController {
           'No sounds were preloaded during initialization');
     }
   }
+
   // AUDIO EFFECT METHODS
   // These methods now delegate all filter operations to the AudioEffectsController
-
   /// Applies an audio effect with specified parameters
   void applyEffect(AudioEffectType type, Map<String, double> parameters) {
     try {
@@ -133,6 +133,16 @@ class AudioController {
       _log.fine('Applied effect: $type with parameters: $parameters');
     } catch (e) {
       _log.severe('Failed to apply effect: $type', e);
+    }
+  }
+
+  /// Deactivates all effects without changing their settings
+  void deactivateEffects() {
+    try {
+      _effectsController.deactivateAllEffects();
+      _log.info('All effects deactivated');
+    } catch (e) {
+      _log.severe('Failed to deactivate effects', e);
     }
   }
 
