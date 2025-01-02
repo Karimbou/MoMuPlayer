@@ -125,6 +125,7 @@ class AudioController {
   }
 
   // AUDIO EFFECT METHODS
+
   // These methods now delegate all filter operations to the AudioEffectsController
   /// Applies an audio effect with specified parameters
   void applyEffect(AudioEffectType type, Map<String, double> parameters) {
@@ -258,16 +259,22 @@ class AudioController {
   // CLEANUP METHODS
   /// Disposes of all resources and cleans up
   Future<void> dispose() async {
+    _log.info('Starting to dispose audio controller...');
     try {
+      _log.fine('Stopping any playing music...');
       await stopMusic();
       await Future.delayed(const Duration(milliseconds: 100));
 
+      _log.fine(
+          'Disposing ${_preloadedSounds.length} preloaded sound sources...');
       for (final source in _preloadedSounds.values) {
         _soloud.disposeSource(source);
       }
       _preloadedSounds.clear();
+      _log.fine('All preloaded sounds disposed');
 
       if (_soloud.isInitialized) {
+        _log.fine('Deinitializing soloud audio engine...');
         _soloud.deinit();
       }
 
