@@ -53,10 +53,16 @@ class AudioController {
 
   // CONSTRUCTOR
   AudioController() : _initializationFuture = null {
+    _log.info('Creating new AudioController instance...');
     _soloud = SoLoud.instance;
+    _log.fine('SoLoud instance acquired');
+
     // Initialize effects controller with our soloud instance
     _effectsController = AudioEffectsController(_soloud);
+    _log.fine('AudioEffectsController initialized');
+
     _initializationFuture = initialize();
+    _log.info('AudioController initialization started');
   }
 
   // INITIALIZATION METHODS
@@ -108,9 +114,14 @@ class AudioController {
   }
 
   void _configureInitialAudioSettings() {
+    _log.info('Configuring initial audio settings...');
     _soloud.setVisualizationEnabled(false);
+    _log.fine('Visualization disabled');
     _soloud.setGlobalVolume(AudioConfig.maxValue);
+    _log.fine('Global volume set to: ${AudioConfig.maxValue}');
     _soloud.setMaxActiveVoiceCount(AudioConfig.maxActiveVoices);
+    _log.fine('Max active voice count set to: ${AudioConfig.maxActiveVoices}');
+    _log.info('Initial audio settings configured successfully');
   }
 
   Future<void> _loadAudioAssets() async {
