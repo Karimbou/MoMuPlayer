@@ -22,6 +22,7 @@ class AudioController {
   static final Logger _log = Logger('AudioController');
 
   // PRIVATE FIELDS
+
   // Core audio functionality
   late final SoLoud _soloud;
   // Centralized effects management
@@ -53,10 +54,16 @@ class AudioController {
 
   // CONSTRUCTOR
   AudioController() : _initializationFuture = null {
+    _log.info('Creating new AudioController instance...');
     _soloud = SoLoud.instance;
+    _log.fine('SoLoud instance acquired');
+
     // Initialize effects controller with our soloud instance
     _effectsController = AudioEffectsController(_soloud);
+    _log.fine('AudioEffectsController initialized');
+
     _initializationFuture = initialize();
+    _log.info('AudioController initialization started');
   }
 
   // INITIALIZATION METHODS
@@ -108,9 +115,14 @@ class AudioController {
   }
 
   void _configureInitialAudioSettings() {
+    _log.info('Configuring initial audio settings...');
     _soloud.setVisualizationEnabled(false);
+    _log.fine('Visualization disabled');
     _soloud.setGlobalVolume(AudioConfig.maxValue);
+    _log.fine('Global volume set to: ${AudioConfig.maxValue}');
     _soloud.setMaxActiveVoiceCount(AudioConfig.maxActiveVoices);
+    _log.fine('Max active voice count set to: ${AudioConfig.maxActiveVoices}');
+    _log.info('Initial audio settings configured successfully');
   }
 
   Future<void> _loadAudioAssets() async {
@@ -125,59 +137,115 @@ class AudioController {
   }
 
   // AUDIO EFFECT METHODS
-  // These methods now delegate all filter operations to the AudioEffectsController
-  /// Applies an audio effect with specified parameters
+
+  /// Applies an audio effect with the specified parameters.
+  ///
+  /// Parameters:
+  /// - type: The type of effect to apply
+  /// - parameters: A map of parameter names to values. Must include 'intensity'.
+  ///   Additional parameters depend on the effect type:
+  ///   - Reverb: roomSize, wet
+  ///   - Delay: delay, decay, wet
+  ///   - Biquad: frequency
+  ///
+  /// Throws [AudioEffectsException] if parameters are invalid or effect application fails.
   void applyEffect(AudioEffectType type, Map<String, double> parameters) {
     try {
+      if (!_isInitialized) {
+        throw AudioControllerException('Audio controller is not initialized');
+      }
       _effectsController.applyEffect(type, parameters);
       _log.fine('Applied effect: $type with parameters: $parameters');
     } catch (e) {
-      _log.severe('Failed to apply effect: $type', e);
+      final error = e is AudioEffectsException
+          ? AudioControllerException(e.message, e.originalError)
+          : AudioControllerException('Failed to apply effect: $type', e);
+      _log.severe(error.toString());
+      // Don't rethrow here as this is a UI-facing method
     }
   }
 
   /// Deactivates all effects without changing their settings
   void deactivateEffects() {
     try {
+      if (!_isInitialized) {
+        throw AudioControllerException('Audio controller is not initialized');
+      }
       _effectsController.deactivateAllEffects();
       _log.info('All effects deactivated');
     } catch (e) {
-      _log.severe('Failed to deactivate effects', e);
+      final error = e is AudioEffectsException
+          ? AudioControllerException(e.message, e.originalError)
+          : AudioControllerException('Failed to deactivate effects', e);
+      _log.severe(error.toString());
     }
   }
 
   /// Gets the current settings of all effects
   Map<String, Map<String, double>> getCurrentEffectSettings() {
-    return _effectsController.getAllEffectSettings();
+    try {
+      if (!_isInitialized) {
+        throw AudioControllerException('Audio controller is not initialized');
+      }
+      return _effectsController.getAllEffectSettings();
+    } catch (e) {
+      final error = e is AudioEffectsException
+          ? AudioControllerException(e.message, e.originalError)
+          : AudioControllerException('Failed to get effect settings', e);
+      _log.severe(error.toString());
+      // Return empty settings on error
+      return {
+        'reverb': {},
+        'delay': {},
+        'biquad': {},
+      };
+    }
   }
 
   /// Resets all effects to their default values
   void resetEffects() {
     try {
+      if (!_isInitialized) {
+        throw AudioControllerException('Audio controller is not initialized');
+      }
       _effectsController.resetAllEffects();
       _log.info('Reset all effects to default values');
     } catch (e) {
-      _log.severe('Failed to reset effects', e);
+      final error = e is AudioEffectsException
+          ? AudioControllerException(e.message, e.originalError)
+          : AudioControllerException('Failed to reset effects', e);
+      _log.severe(error.toString());
     }
   }
 
   /// Saves the current state of all effects
   void saveEffectState() {
     try {
+      if (!_isInitialized) {
+        throw AudioControllerException('Audio controller is not initialized');
+      }
       _effectsController.saveCurrentState();
       _log.info('Saved current effect state');
     } catch (e) {
-      _log.severe('Failed to save effect state', e);
+      final error = e is AudioEffectsException
+          ? AudioControllerException(e.message, e.originalError)
+          : AudioControllerException('Failed to save effect state', e);
+      _log.severe(error.toString());
     }
   }
 
-  /// Restores previously saved effect state
   void restoreEffectState() {
     try {
+      if (!_isInitialized) {
+        throw AudioControllerException('Audio controller is not initialized');
+      }
       _effectsController.restoreState();
       _log.info('Restored effect state');
     } catch (e) {
-      _log.severe('Failed to restore effect state', e);
+      final error = e is AudioEffectsException
+          ? AudioControllerException(e.message, e.originalError)
+          : AudioControllerException('Failed to restore effect state', e);
+      _log.severe(error.toString());
     }
   }
 
@@ -258,16 +326,29 @@ class AudioController {
   // CLEANUP METHODS
   /// Disposes of all resources and cleans up
   Future<void> dispose() async {
+    _log.info('Starting to dispose audio controller...');
     try {
+      // First deactivate all effects
+      try {
+        deactivateEffects();
+      } catch (e) {
+        _log.warning('Failed to deactivate effects during disposal', e);
+      }
+
+      _log.fine('Stopping any playing music...');
       await stopMusic();
       await Future.delayed(const Duration(milliseconds: 100));
 
+      _log.fine(
+          'Disposing ${_preloadedSounds.length} preloaded sound sources...');
       for (final source in _preloadedSounds.values) {
         _soloud.disposeSource(source);
       }
       _preloadedSounds.clear();
+      _log.fine('All preloaded sounds disposed');
 
       if (_soloud.isInitialized) {
+        _log.fine('Deinitializing soloud audio engine...');
         _soloud.deinit();
       }
 
