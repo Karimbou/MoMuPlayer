@@ -6,6 +6,8 @@ import 'audio_effects_controller.dart';
 
 final Logger _log = Logger('SettingsController');
 
+/// {@category Controllers}
+
 class SettingsController {
   final AudioController audioController;
 

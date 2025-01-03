@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'components/loading_screen.dart';
 import 'package:logging/logging.dart';
 import 'components/error_screen.dart';
-import 'package:momu_player/screens/desk_page.dart';
+import 'screens/desk_page.dart';
 import 'controller/audio_controller.dart';
 import 'constants.dart';
 

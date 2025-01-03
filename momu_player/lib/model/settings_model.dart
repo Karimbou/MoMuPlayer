@@ -1,3 +1,6 @@
+/// {@category Miscellaneous}
+library;
+
 enum SoundType { wurli, xylophone, piano, sound4 }
 
 class SettingsException implements Exception {

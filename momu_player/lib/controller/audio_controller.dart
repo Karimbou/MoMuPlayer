@@ -5,6 +5,8 @@ import '../audio/audio_config.dart';
 import '../audio/load_assets.dart';
 import 'audio_effects_controller.dart';
 
+/// {@category Controllers}
+
 // Exception handling remains the same
 class AudioControllerException implements Exception {
   final String message;

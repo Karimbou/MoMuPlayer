@@ -3,6 +3,8 @@ import 'package:logging/logging.dart';
 import '../audio/audio_config.dart';
 import '../controller/audio_effects_controller.dart';
 
+/// {@category Audio}
+
 final Logger _log = Logger('LoadAssets');
 late final SoLoud _soloud;
 late final Map<String, AudioSource> _preloadedSounds;

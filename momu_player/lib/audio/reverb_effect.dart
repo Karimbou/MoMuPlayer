@@ -3,6 +3,8 @@ import 'package:flutter_soloud/flutter_soloud.dart';
 import '../../audio/audio_config.dart';
 import 'audio_effect.dart';
 
+/// {@category Audio}
+
 class ReverbEffect with WetDryMixin implements AudioEffect {
   @override // Add this
   final Logger log = Logger('ReverbEffect'); // Rename _log to log

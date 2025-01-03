@@ -9,6 +9,8 @@ import '../ui/settings_widgets.dart';
 import '../audio/load_assets.dart';
 import '../audio/biquad_filter_type.dart';
 
+/// {@category Screens}
+
 class SettingsException implements Exception {
   final String message;
   final dynamic originalError;

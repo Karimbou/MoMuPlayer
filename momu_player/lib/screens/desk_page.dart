@@ -9,6 +9,8 @@ import 'settings_page.dart';
 import '../components/slider_layout.dart';
 import '../components/segmentedbutton_layout.dart';
 
+/// {@category Screens}
+
 enum Filter {
   none,
   reverb,

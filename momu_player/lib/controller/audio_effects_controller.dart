@@ -1,10 +1,11 @@
-// lib/controller/audio_effects_controller.dart
 import 'package:logging/logging.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import '../audio/audio_config.dart';
 import '../audio/biquad_effect.dart';
 import '../audio/delay_effect.dart';
 import '../audio/reverb_effect.dart';
+
+/// {@category Controllers}
 
 /// Types of audio effects supported by the controller
 enum AudioEffectType {
@@ -13,20 +14,20 @@ enum AudioEffectType {
 
   /// Reverb effect with parameters:
   /// - intensity: Overall effect strength (required)
-  /// - roomSize: Size of reverb room [0.0-1.0] (optional)
-  /// - wet: Wet/dry mix [0.0-1.0] (optional)
+  /// - roomSize: Size of reverb room, range: 0.0 to 1.0 (optional)
+  /// - wet: Wet/dry mix, range: 0.0 to 1.0 (optional)
   reverb,
 
   /// Delay effect with parameters:
   /// - intensity: Overall effect strength (required)
-  /// - delay: Delay time in ms [0-1000] (optional)
-  /// - decay: Decay rate [0.0-1.0] (optional)
-  /// - wet: Wet/dry mix [0.0-1.0] (optional)
+  /// - delay: Delay time in milliseconds, range: 0 to 1000 (optional)
+  /// - decay: Decay rate, range: 0.0 to 1.0 (optional)
+  /// - wet: Wet/dry mix, range: 0.0 to 1.0 (optional)
   delay,
 
   /// Biquad filter with parameters:
   /// - intensity: Overall effect strength (required)
-  /// - frequency: Normalized frequency [0.0-1.0] (optional)
+  /// - frequency: Normalized frequency, range: 0.0 to 1.0 (optional)
   biquad,
 }
 

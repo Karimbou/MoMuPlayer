@@ -1,0 +1,49 @@
+dartdoc:
+  categories:
+    audio:
+      markdown: doc/audio.md
+      name: Audio System
+      documentation: Core audio functionality and effects
+    controllers:
+      markdown: doc/controllers.md
+      name: Controllers
+      documentation: Application controllers and state management
+    screens:
+      markdown: doc/screens.md
+      name: Screens
+      documentation: User interface components and navigation
+    widgets:
+      markdown: doc/widgets.md
+      name: Widgets
+      documentation: Basic UI building blocks and reusable components
+  
+  categoryOrder:
+    - audio
+    - controllers
+    - screens
+    - widgets
+  
+  showUndocumentedCategories: true
+  
+  errors:
+    - duplicate-file
+    - invalid-parameter
+    - tool-error
+    - unknown-file
+    - unknown-macro
+  
+  warnings:
+    - missing-return-doc
+    - missing-parameter-doc
+    - missing-throws-doc
+  
+  ignore:
+    - missing-code-block-language
+  
+  excludeFooterVersion: true
+  includeSource: true
+  outputDir: doc/api
+  
+  # Source links configuration
+  sourceUrl: https://github.com/Karimbou/MoMuPlayer/tree/main/momu_player/lib/
+  baseHref: /

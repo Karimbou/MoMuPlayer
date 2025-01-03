@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import '../../audio/audio_config.dart';
 import 'audio_effect.dart';
 
+/// {@category Audio}
+
 class BiquadEffect with WetDryMixin, FrequencyMixin implements AudioEffect {
   @override
   final Logger log = Logger('BiquadEffect');

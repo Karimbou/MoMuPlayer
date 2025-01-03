@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:momu_player/main.dart';
+import '../main.dart';
 import '../controller/audio_controller.dart';
 
 class ErrorScreen extends StatelessWidget {
