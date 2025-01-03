@@ -29,9 +29,9 @@ void main() async {
   try {
     final audioController = AudioController();
     // Add timeout to initial setup
-    await Future.any([
+    await Future.any<void>([
       audioController.initialized,
-      Future.delayed(const Duration(seconds: 30)).then((_) {
+      Future<void>.delayed(const Duration(seconds: 30)).then((_) {
         throw TimeoutException('App initialization timed out');
       }),
     ]);
@@ -84,7 +84,7 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ErrorScreen()),
+          MaterialPageRoute<void>(builder: (context) => const ErrorScreen()),
         );
       }
     }

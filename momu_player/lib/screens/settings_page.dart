@@ -168,7 +168,8 @@ class _SettingsPageState extends State<SettingsPage> {
         widget.audioController.restoreEffectState();
         _loadCurrentSettings(); // Reload all settings after restore
         _log.info('Successfully switched instruments and restored settings');
-      }).catchError((error) {
+      }).catchError((Object error) {
+        // Added explicit type parameter
         _log.severe('Error switching instruments', error);
         return null;
       });

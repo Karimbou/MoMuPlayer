@@ -265,7 +265,7 @@ class _DeskPageState extends State<DeskPage> {
   void _navigateToSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => SettingsPage(
           audioController: widget.audioController,
         ),
