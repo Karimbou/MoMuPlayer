@@ -10,7 +10,7 @@ class SettingsWidgets {
     BuildContext context,
     String label,
     double value,
-    Function(double) onChanged,
+    void Function(double) onChanged,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -40,9 +40,9 @@ class SettingsWidgets {
     double wetValue,
     double frequencyValue,
     BiquadFilterType filterType,
-    Function(double) onWetChanged,
-    Function(double) onFrequencyChanged,
-    Function(BiquadFilterType) onFilterTypeChanged,
+    void Function(double) onWetChanged,
+    void Function(double) onFrequencyChanged,
+    void Function(BiquadFilterType) onFilterTypeChanged,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -81,7 +81,7 @@ class SettingsWidgets {
   static Widget buildReverbSettings(
     BuildContext context,
     double reverbRoomSize,
-    Function(double) onChanged,
+    void Function(double) onChanged,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -106,8 +106,8 @@ class SettingsWidgets {
     BuildContext context,
     double delayTime,
     double delayDecay,
-    Function(double) onDelayChanged,
-    Function(double) onDecayChanged,
+    void Function(double) onDelayChanged,
+    void Function(double) onDecayChanged,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -137,7 +137,7 @@ class SettingsWidgets {
   static Widget buildSoundSelection(
     BuildContext context,
     SoundType selectedSound,
-    Function(Set<SoundType>) onSelectionChanged,
+    void Function(Set<SoundType>) onSelectionChanged,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
