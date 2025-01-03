@@ -7,21 +7,73 @@ import 'audio_effects_controller.dart';
 
 /// {@category Controllers}
 
-// Exception handling remains the same
+/// Exception thrown when audio-related operations fail in the AudioController.
+///
+/// This exception provides detailed error information including:
+/// - A human-readable error message
+/// - The original error that caused this exception (if any)
+///
+/// Example:
+/// ```dart
+/// throw AudioControllerException(
+///   'Failed to initialize audio system',
+///   originalError: someError,
+/// );
+/// ```
 class AudioControllerException implements Exception {
-  final String message;
-  final dynamic originalError;
-
+  /// Creates a new [AudioControllerException].
+  ///
+  /// The [message] parameter is required and should describe the error.
+  /// The [originalError] parameter is optional and contains the underlying error.
   AudioControllerException(this.message, [this.originalError]);
+
+  /// A human-readable description of the error.
+  final String message;
+
+  /// The underlying error that caused this exception, if any.
+  ///
+  /// This field is useful for debugging and logging purposes,
+  /// as it preserves the original error context.
+  final dynamic originalError;
 
   @override
   String toString() =>
       'AudioControllerException: $message${originalError != null ? '\nOriginal error: $originalError' : ''}';
 }
 
+/// Main controller for audio functionality in the MoMu Player.
+///
+/// This controller handles:
+/// - Audio system initialization and cleanup
+/// - Sound and music playback
+/// - Audio effect management
+/// - Volume control and state management
+///
+/// Usage example:
+/// ```dart
+/// final audioController = AudioController();
+/// await audioController.initialized; // Wait for initialization
+///
+/// // Play a sound
+/// await audioController.playSound('note_c');
+///
+/// // Apply an effect
+/// audioController.applyEffect(AudioEffectType.reverb, {
+///   'intensity': 0.5,
+///   'roomSize': 0.7,
+/// });
+///
+/// // Cleanup when done
+/// await audioController.dispose();
+/// ```
+///
+/// The controller must be properly initialized before use and disposed
+/// when no longer needed to prevent memory leaks and resource issues.
 class AudioController {
   // LOGGING
   static final Logger _log = Logger('AudioController');
+
+  // ... rest of the implementation
 
   // PRIVATE FIELDS
 
@@ -42,25 +94,112 @@ class AudioController {
   bool _soundEnabled = true;
   SoundHandle? _currentMusicHandle;
   String? _currentMusicPath;
+
+  // PRIVATE FIELDS
   final String _currentInstrument = AudioConfig.defaultInstrument;
 
   // PUBLIC GETTERS
+  /// Returns the underlying SoLoud audio engine instance.
+  ///
+  /// This getter should be used with caution and only when direct access
+  /// to the audio engine is necessary. Prefer using the controller's
+  /// high-level methods instead.
   SoLoud get soloud => _soloud;
+
+  /// Indicates whether the audio controller has been fully initialized.
+  ///
+  /// Returns `true` if the audio system is ready to use, `false` otherwise.
+  /// Check this before performing any audio operations.
   bool get isInitialized => _isInitialized;
+
+  /// A Future that completes when the audio controller is fully initialized.
+  ///
+  /// Use this to wait for the audio system to be ready:
+  /// ```dart
+  /// await audioController.initialized;
+  /// // Audio system is now ready to use
+  /// ```
   Future<void> get initialized => _initializationFuture ?? Future.value();
+
+  /// The current music volume level, ranging from 0.0 to 1.0.
+  ///
+  /// This value affects all music playback but not sound effects.
+  /// Use [setMusicVolume] to change this value.
+  /// ```dart
+  /// print('Current music volume: ${audioController.musicVolume}');
+  /// ```
   double get musicVolume => _musicVolume;
+
+  /// Whether music playback is currently enabled.
+  ///
+  /// When `false`, all music playback attempts will be ignored.
+  /// Use [toggleMusic] to change this value.
+  /// ```dart
+  /// if (audioController.isMusicEnabled) {
+  ///   print('Music is enabled');
+  /// }
+  /// ```
   bool get isMusicEnabled => _musicEnabled;
+
+  /// Whether sound effects are currently enabled.
+  ///
+  /// When `false`, all sound effect playback attempts will be ignored.
+  /// Use [toggleSound] to change this value.
+  /// ```dart
+  /// if (audioController.isSoundEnabled) {
+  ///   await audioController.playSound('effect_name');
+  /// }
+  /// ```
   bool get isSoundEnabled => _soundEnabled;
+
+  /// Indicates whether music is currently playing.
+  ///
+  /// Returns `true` if there is an active music track,
+  /// `false` otherwise.
+  /// ```dart
+  /// if (audioController.isMusicPlaying) {
+  ///   print('Music is currently playing');
+  /// }
+  /// ```
   bool get isMusicPlaying => _currentMusicHandle != null;
+
+  /// The current instrument selected for playback.
+  ///
+  /// This value is set during initialization and determines which
+  /// instrument sound set is used for playback.
+  /// Defaults to [AudioConfig.defaultInstrument].
+  /// ```dart
+  /// print('Current instrument: ${audioController.currentInstrument}');
+  /// ```
   String get currentInstrument => _currentInstrument;
 
   // CONSTRUCTOR
+  /// Creates a new AudioController instance and begins initialization.
+  ///
+  /// The constructor starts the initialization process automatically but does not
+  /// wait for it to complete. Use the [initialized] getter to wait for the
+  /// initialization to finish:
+  ///
+  /// ```dart
+  /// final controller = AudioController();
+  /// await controller.initialized;  // Wait for initialization
+  /// ```
+  ///
+  /// Throws [AudioControllerException] if there's an error during setup.
+  /// The initialization process includes:
+  /// - Setting up the SoLoud audio engine
+  /// - Configuring initial audio settings
+  /// - Loading required audio assets
+  /// - Initializing the effects system
+  ///
+  /// The constructor also sets up a listener to handle audio events and
+  /// handle errors gracefully. The listener listens for events such as audio playback,
+  /// audio recording, and audio playback errors.
   AudioController() : _initializationFuture = null {
     _log.info('Creating new AudioController instance...');
     _soloud = SoLoud.instance;
     _log.fine('SoLoud instance acquired');
 
-    // Initialize effects controller with our soloud instance
     _effectsController = AudioEffectsController(_soloud);
     _log.fine('AudioEffectsController initialized');
 
@@ -76,9 +215,9 @@ class AudioController {
         return;
       }
 
-      return await Future.any([
+      return await Future.any<void>([
         _initializeImpl(),
-        Future.delayed(const Duration(
+        Future<void>.delayed(const Duration(
                 seconds: AudioConfig.initializationTimeoutSeconds))
             .then((_) {
           throw AudioControllerException(
@@ -97,7 +236,7 @@ class AudioController {
   }
 
   Future<void> _initializeImpl() async {
-    await Future.delayed(
+    await Future<void>.delayed(
         const Duration(milliseconds: AudioConfig.initializationDelayMs));
 
     if (_soloud.isInitialized) {
@@ -339,7 +478,7 @@ class AudioController {
 
       _log.fine('Stopping any playing music...');
       await stopMusic();
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       _log.fine(
           'Disposing ${_preloadedSounds.length} preloaded sound sources...');
