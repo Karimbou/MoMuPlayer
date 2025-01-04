@@ -1,3 +1,5 @@
+// ignore_for_file: public_member_api_docs
+
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import '../audio/audio_config.dart';
@@ -21,7 +23,6 @@ import '../components/segmentedbutton_layout.dart';
 ///
 /// The page manages audio playback and effects through an [AudioController].
 /// Effect settings are persisted between sessions.
-
 enum Filter {
   none,
   reverb,
@@ -34,25 +35,23 @@ enum Filter {
 ///
 /// Contains the color and associated sound file path for a key.
 class SoundKeyConfig {
-  final Color color;
-  final String? soundPath;
-
   const SoundKeyConfig({
     required this.color,
     this.soundPath,
   });
+  final Color color;
+  final String? soundPath;
 }
 
 /// The main desk page widget that provides the musical interface
 class DeskPage extends StatefulWidget {
-  final String title;
-  final AudioController audioController;
-
   const DeskPage({
     super.key,
     required this.title,
     required this.audioController,
   });
+  final String title;
+  final AudioController audioController;
 
   @override
   State<DeskPage> createState() => _DeskPageState();
