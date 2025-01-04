@@ -11,24 +11,34 @@ import '../audio/biquad_filter_type.dart';
 
 /// {@category Screens}
 
+/// Exception thrown when there's an error in settings operations.
 class SettingsException implements Exception {
-  final String message;
-  final dynamic originalError;
-
+  /// Creates a new [SettingsException] with the given [message] and optional [originalError].
   SettingsException(this.message, [this.originalError]);
+
+  /// The error message describing what went wrong.
+  final String message;
+
+  /// The original error that caused the exception, if any
+  final dynamic originalError;
 
   @override
   String toString() =>
       'SettingsException: $message${originalError != null ? '\nOriginal error: $originalError' : ''}';
 }
 
+/// Creates the SettingsPage widget.
+/// This widget is responsible for displaying the settings of the used filters and sounds of this player and is handling the
+/// user interactions with those settings.
 class SettingsPage extends StatefulWidget {
-  final AudioController audioController;
-
+  /// The key for the SettingsPage widget.
   const SettingsPage({
     super.key,
     required this.audioController,
   });
+
+  /// Sets the AudioController instance for the SettingsPage widget.
+  final AudioController audioController;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -37,17 +47,23 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   static final Logger _log = Logger('SettingsPage');
   late final SettingsController _settingsController;
-  BiquadFilterType _biquadFilterType = BiquadFilterType.lowpass;
 
   // Initialize with AudioConfig defaults instead of AudioController constants
+  // For the reverb room size, delay time, and delay decay, we use the default values from AudioConfig.
   double _reverbRoomSize = AudioConfig.defaultReverbRoomSize;
+  double _reverbWet = AudioConfig.defaultReverbWet;
+
+  // For the echo delay, we use the default value from AudioConfig.
   double _delayTime = AudioConfig.defaultEchoDelay;
   double _delayDecay = AudioConfig.defaultEchoDecay;
-  double _delayWet = AudioConfig.defaultEchoWet; // Add this
+  double _delayWet = AudioConfig.defaultEchoWet;
 
+  // For the biquad filter type, we use the default value from AudioConfig.
+  BiquadFilterType _biquadFilterType = BiquadFilterType.lowpass;
   double _biquadFrequency = AudioConfig.defaultBiquadFrequency;
   double _biquadWet = AudioConfig.defaultBiquadWet;
 
+  // For the sound type, we use the default value from AudioConfig.
   SoundType _selectedSound = SoundType.wurli;
 
   @override
@@ -147,6 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _biquadWet = AudioConfig.defaultBiquadWet;
       _biquadFilterType = BiquadFilterType.lowpass;
       _reverbRoomSize = AudioConfig.defaultReverbRoomSize;
+      _reverbWet = AudioConfig.defaultReverbWet;
       _delayTime = AudioConfig.defaultEchoDelay;
       _delayDecay = AudioConfig.defaultEchoDecay;
       _delayWet = AudioConfig.defaultEchoWet;
@@ -201,7 +218,6 @@ class _SettingsPageState extends State<SettingsPage> {
             _delayTime,
             _delayDecay,
             (value) {
-              // Remove _delayWet from here
               setState(() {
                 _delayTime = value;
                 widget.audioController.applyEffect(

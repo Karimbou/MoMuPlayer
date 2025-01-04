@@ -37,11 +37,14 @@ class AudioConfig {
   /// Default decay rate for echo repeats (0.0 - 1.0)
   static const double defaultEchoDecay = 0.3;
 
-  /// Default wet/dry mix for reverb effect (0.0 - 1.0)
+  /// Default wet/dry mix for reverb Wettness (0.0 - 1.0)
   static const double defaultReverbWet = 0.3;
 
-  /// Default room size parameter for reverb (0.0 - 1.0)
+  /// Default room size parameter for reverb Room (0.0 - 1.0)
   static const double defaultReverbRoomSize = 0.5;
+
+  /// Default room size parameter for reverb Damp (0.0 - 1.0)
+  static const double defaultReverbDamp = 0.5;
 
   /// Default center frequency for BiQuad filter, normalized 0.0 - 1.0
   static const double defaultBiquadFrequency = 0.5;
