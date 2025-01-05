@@ -45,6 +45,9 @@ class AudioEffectsException implements Exception {
 
 /// Controller responsible for managing audio effects and their states
 class AudioEffectsController {
+  AudioEffectsController(this._soloud) {
+    _initializeEffects();
+  }
   static final Logger _log = Logger('AudioEffectsController');
 
   // Core dependencies
@@ -57,10 +60,6 @@ class AudioEffectsController {
 
   // Saved state
   Map<String, Map<String, double>>? _savedState;
-
-  AudioEffectsController(this._soloud) {
-    _initializeEffects();
-  }
 
   void _initializeEffects() {
     try {
@@ -111,6 +110,9 @@ class AudioEffectsController {
           _reverbEffect.setWetLevel(parameters['intensity']!);
           if (parameters.containsKey('roomSize')) {
             _reverbEffect.setRoomSize(parameters['roomSize']!);
+          }
+          if (parameters.containsKey('damp')) {
+            _reverbEffect.setDamp(parameters['damp']!);
           }
           _reverbEffect.apply();
           break;
@@ -210,6 +212,8 @@ class AudioEffectsController {
             .setWetLevel(reverbSettings['wet'] ?? AudioConfig.defaultReverbWet);
         _reverbEffect.setRoomSize(
             reverbSettings['roomSize'] ?? AudioConfig.defaultReverbRoomSize);
+        _reverbEffect
+            .setDamp(reverbSettings['damp'] ?? AudioConfig.defaultReverbDamp);
         _reverbEffect.apply();
       }
 
