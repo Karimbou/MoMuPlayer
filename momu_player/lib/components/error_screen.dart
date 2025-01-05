@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:momu_player/main.dart';
+import '../main.dart';
 import '../controller/audio_controller.dart';
 
+/// A widget that displays an error screen when the application encounters
+/// a critical error, such as initialization failures or audio system errors.
+///
+/// This screen is typically shown when:
+/// - The audio system fails to initialize
+/// - Required assets cannot be loaded
+/// - Critical system components are unavailable
 class ErrorScreen extends StatelessWidget {
+  /// Creates an error screen widget.
+  ///
+  /// The [key] parameter is optional and is used to identify this widget
+  /// in the widget tree.
   const ErrorScreen({super.key});
 
   Future<void> _restartApp(BuildContext context) async {
@@ -13,7 +24,7 @@ class ErrorScreen extends StatelessWidget {
       if (context.mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
+          MaterialPageRoute<void>(
             builder: (context) => MoMuPlayerApp(
               audioController: audioController,
             ),

@@ -4,7 +4,34 @@ import 'dart:math' as math;
 import '../../audio/audio_config.dart';
 import 'audio_effect.dart';
 
+/// {@category Audio}
+
+/// {@category Audio}
+
+/// A biquad filter effect implementation that provides frequency filtering capabilities.
+///
+/// This effect supports:
+/// - Wet/dry mix control
+/// - Frequency adjustment
+/// - Resonance control
+/// - Different filter types (lowpass, highpass, etc.)
+///
+/// Example usage:
+/// ```dart
+/// final effect = BiquadEffect(soloud);
+/// effect.setFrequency(1000);  // Set frequency to 1kHz
+/// effect.setWetLevel(0.5);    // Set mix to 50%
+/// effect.apply();             // Apply the effect
+/// ```
 class BiquadEffect with WetDryMixin, FrequencyMixin implements AudioEffect {
+  /// Creates a new BiquadEffect instance.
+  ///
+  /// Parameters:
+  /// - [_soloud]: The SoLoud audio engine instance to use for this effect.
+  ///
+  /// Throws a [StateError] if the audio engine is not initialized.
+  BiquadEffect(this._soloud);
+
   @override
   final Logger log = Logger('BiquadEffect');
   final SoLoud _soloud;
@@ -13,8 +40,6 @@ class BiquadEffect with WetDryMixin, FrequencyMixin implements AudioEffect {
   double _normalizedFreq = AudioConfig.defaultBiquadFrequency;
   double _resonance = AudioConfig.defaultBiquadResonance;
   final double _type = AudioConfig.defaultBiquadType;
-
-  BiquadEffect(this._soloud);
 
   double get _frequency => (10.0 * math.pow(1600.0, _normalizedFreq))
       .clamp(AudioConfig.minFrequencyHz, AudioConfig.maxFrequencyHz);

@@ -1,5 +1,7 @@
 import 'package:logging/logging.dart';
 
+/// {@category Audio}
+
 /// Base interface for all audio effects
 abstract class AudioEffect {
   Logger get log;

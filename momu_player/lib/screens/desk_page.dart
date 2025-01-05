@@ -1,3 +1,5 @@
+// ignore_for_file: public_member_api_docs
+
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import '../audio/audio_config.dart';
@@ -9,6 +11,18 @@ import 'settings_page.dart';
 import '../components/slider_layout.dart';
 import '../components/segmentedbutton_layout.dart';
 
+/// {@category Screens}
+///
+/// A page that displays a musical interface with sound keys and audio effects.
+///
+/// The DeskPage consists of:
+/// - A grid of colored sound keys that play different notes when pressed
+/// - Audio effect controls including reverb, delay, and biquad filter
+/// - A slider to control the intensity of the selected effect
+/// - A settings button to access additional configuration options
+///
+/// The page manages audio playback and effects through an [AudioController].
+/// Effect settings are persisted between sessions.
 enum Filter {
   none,
   reverb,
@@ -17,25 +31,27 @@ enum Filter {
 }
 
 // Move to a separate file if more configs are added
+/// Configuration for individual sound key buttons
+///
+/// Contains the color and associated sound file path for a key.
 class SoundKeyConfig {
-  final Color color;
-  final String? soundPath;
-
   const SoundKeyConfig({
     required this.color,
     this.soundPath,
   });
+  final Color color;
+  final String? soundPath;
 }
 
+/// The main desk page widget that provides the musical interface
 class DeskPage extends StatefulWidget {
-  final String title;
-  final AudioController audioController;
-
   const DeskPage({
     super.key,
     required this.title,
     required this.audioController,
   });
+  final String title;
+  final AudioController audioController;
 
   @override
   State<DeskPage> createState() => _DeskPageState();
@@ -138,6 +154,7 @@ class _DeskPageState extends State<DeskPage> {
           effectParams['frequency'] = wetValue;
           effectParams['resonance'] = 0.5;
           effectParams['type'] = 0.0; // Lowpass filter
+          effectParams['type'] = 0.0;
           widget.audioController.applyEffect(
             AudioEffectType.biquad,
             effectParams,
@@ -263,7 +280,7 @@ class _DeskPageState extends State<DeskPage> {
   void _navigateToSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(
+      MaterialPageRoute<void>(
         builder: (context) => SettingsPage(
           audioController: widget.audioController,
         ),

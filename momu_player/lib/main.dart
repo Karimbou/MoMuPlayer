@@ -1,18 +1,42 @@
+// Copyright (c) 2024 Ryotaro Narita. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be found
+// in the LICENSE file.
+
+/// music player application implementation in Flutter
+///
+/// The app consists of following key components:
+library;
+
+/// * Audio playback controller
+/// * UI screens for playback control
+/// * Error handling and loading states
+///
+/// The application follows a simple architecture:
+/// * Main app initialization in [main]
+/// * Core audio controller setup
+/// * UI layer with loading/error states
+/// * Main playback interface
 import 'dart:developer' as dev;
-import 'dart:async'; // Add this import
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'components/loading_screen.dart';
 import 'package:logging/logging.dart';
 import 'components/error_screen.dart';
-import 'package:momu_player/screens/desk_page.dart';
+import 'screens/desk_page.dart';
 import 'controller/audio_controller.dart';
 import 'constants.dart';
 
+/// Entry point of the application
+///
+/// Initializes core services and runs the app:
+/// * Sets up logging
+/// * Initializes audio controller
+/// * Handles initialization errors
+/// * Starts the main app widget
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize logging
   Logger.root.level = kDebugMode ? Level.FINE : Level.INFO;
   Logger.root.onRecord.listen((record) {
     dev.log(
@@ -28,10 +52,9 @@ void main() async {
 
   try {
     final audioController = AudioController();
-    // Add timeout to initial setup
-    await Future.any([
+    await Future.any<void>([
       audioController.initialized,
-      Future.delayed(const Duration(seconds: 30)).then((_) {
+      Future<void>.delayed(const Duration(seconds: 30)).then((_) {
         throw TimeoutException('App initialization timed out');
       }),
     ]);
@@ -48,6 +71,12 @@ void main() async {
   }
 }
 
+/// Root widget of the music player application
+///
+/// Manages:
+/// * App initialization state
+/// * Audio controller lifecycle
+/// * Navigation between main screens
 class MoMuPlayerApp extends StatefulWidget {
   const MoMuPlayerApp({required this.audioController, super.key});
   final AudioController audioController;
@@ -55,6 +84,12 @@ class MoMuPlayerApp extends StatefulWidget {
   State<MoMuPlayerApp> createState() => _MoMuPlayerAppState();
 }
 
+/// State for [MoMuPlayerApp]
+///
+/// Handles:
+/// * Initial loading state
+/// * Audio controller initialization
+/// * Error handling during startup
 class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
   bool _isLoading = true;
 
@@ -70,6 +105,9 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
     super.dispose();
   }
 
+  /// Initializes the application asynchronously
+  ///
+  /// Waits for audio controller initialization and handles errors
   Future<void> _initializeApp() async {
     try {
       await widget.audioController.initialized;
@@ -84,7 +122,7 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ErrorScreen()),
+          MaterialPageRoute<void>(builder: (context) => const ErrorScreen()),
         );
       }
     }
@@ -92,7 +130,6 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Show loading screen until initialization is complete
     if (_isLoading) {
       return MaterialApp(
         theme: ThemeData.dark(useMaterial3: true).copyWith(

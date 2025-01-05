@@ -21,6 +21,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.2
+  dartdoc: ^8.3.2
 
 # Add this configuration section after your flutter: section
 flutter_launcher_icons:
