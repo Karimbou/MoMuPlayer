@@ -78,25 +78,45 @@ class SettingsWidgets {
     );
   }
 
-  static Widget buildReverbSettings(
-    BuildContext context,
-    double reverbRoomSize,
-    void Function(double) onChanged,
-  ) {
+  static Widget buildReverbSettings({
+    required BuildContext context,
+    required double reverbRoomSize,
+    required double reverbDamp,
+    required double reverbWet,
+    required ValueChanged<double> onRoomSizeChanged,
+    required ValueChanged<double> onDampChanged,
+    required ValueChanged<double> onWetChanged,
+  }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Reverb Settings',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        buildSliderSection(
-          context,
-          'Room Size',
-          reverbRoomSize.clamp(
-              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
-          onChanged,
+        Text('Room Size: ${(reverbRoomSize * 100).toStringAsFixed(0)}%'),
+        Slider(
+          value: reverbRoomSize,
+          min: AudioConfig.minValue,
+          max: AudioConfig.maxValue,
+          onChanged: onRoomSizeChanged,
+        ),
+        const SizedBox(height: 8),
+        Text('Damp: ${(reverbDamp * 100).toStringAsFixed(0)}%'),
+        Slider(
+          value: reverbDamp,
+          min: AudioConfig.minValue,
+          max: AudioConfig.maxValue,
+          onChanged: onDampChanged,
+        ),
+        const SizedBox(height: 8),
+        Text('Wet: ${(reverbWet * 100).toStringAsFixed(0)}%'),
+        Slider(
+          value: reverbWet,
+          min: AudioConfig.minValue,
+          max: AudioConfig.maxValue,
+          onChanged: onWetChanged,
         ),
       ],
     );
