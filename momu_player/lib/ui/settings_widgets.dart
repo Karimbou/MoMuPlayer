@@ -88,35 +88,32 @@ class SettingsWidgets {
     required ValueChanged<double> onWetChanged,
   }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
           'Reverb Settings',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
-        Text('Room Size: ${(reverbRoomSize * 100).toStringAsFixed(0)}%'),
-        Slider(
-          value: reverbRoomSize,
-          min: AudioConfig.minValue,
-          max: AudioConfig.maxValue,
-          onChanged: onRoomSizeChanged,
+        buildSliderSection(
+          context,
+          'Room Size',
+          reverbRoomSize.clamp(AudioConfig.minValue, AudioConfig.maxValue),
+          onRoomSizeChanged,
         ),
-        const SizedBox(height: 8),
-        Text('Damp: ${(reverbDamp * 100).toStringAsFixed(0)}%'),
-        Slider(
-          value: reverbDamp,
-          min: AudioConfig.minValue,
-          max: AudioConfig.maxValue,
-          onChanged: onDampChanged,
+        const SizedBox(height: 16),
+        buildSliderSection(
+          context,
+          'Damping',
+          reverbDamp.clamp(AudioConfig.minValue, AudioConfig.maxValue),
+          onDampChanged,
         ),
-        const SizedBox(height: 8),
-        Text('Wet: ${(reverbWet * 100).toStringAsFixed(0)}%'),
-        Slider(
-          value: reverbWet,
-          min: AudioConfig.minValue,
-          max: AudioConfig.maxValue,
-          onChanged: onWetChanged,
+        const SizedBox(height: 16),
+        buildSliderSection(
+          context,
+          'Wet Level',
+          reverbWet.clamp(AudioConfig.minValue, AudioConfig.maxValue),
+          onWetChanged,
         ),
       ],
     );
