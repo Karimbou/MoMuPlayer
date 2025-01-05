@@ -25,8 +25,6 @@ This project was deeply inspired by the amazing work of Dr. Angela Yu and her Fl
 https://appbrewery.com/
 
 
-There seems to be a problem with the current openJdk and LadyBug so for the moment you can't see the app in the Android emulator. 
-https://github.com/flutter/flutter/issues/156111
 
 Please write me an Email if you have any questions or suggestions or want to work on this project with me. 
 Happy Coding
