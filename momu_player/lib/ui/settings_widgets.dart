@@ -82,10 +82,8 @@ class SettingsWidgets {
     required BuildContext context,
     required double reverbRoomSize,
     required double reverbDamp,
-    required double reverbWet,
     required ValueChanged<double> onRoomSizeChanged,
     required ValueChanged<double> onDampChanged,
-    required ValueChanged<double> onWetChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -107,13 +105,6 @@ class SettingsWidgets {
           'Damping',
           reverbDamp.clamp(AudioConfig.minValue, AudioConfig.maxValue),
           onDampChanged,
-        ),
-        const SizedBox(height: 16),
-        buildSliderSection(
-          context,
-          'Wet Level',
-          reverbWet.clamp(AudioConfig.minValue, AudioConfig.maxValue),
-          onWetChanged,
         ),
       ],
     );

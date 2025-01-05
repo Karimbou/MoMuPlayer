@@ -51,7 +51,6 @@ class _SettingsPageState extends State<SettingsPage> {
   // Initialize with AudioConfig defaults instead of AudioController constants
   // For the reverb room size, delay time, and delay decay, we use the default values from AudioConfig.
   double _reverbRoomSize = AudioConfig.defaultReverbRoomSize;
-  double _reverbWet = AudioConfig.defaultReverbWet;
   double _reverbDamp = AudioConfig.defaultReverbDamp;
 
   // For the echo delay, we use the default value from AudioConfig.
@@ -87,8 +86,6 @@ class _SettingsPageState extends State<SettingsPage> {
         // Load reverb settings properly
         _reverbRoomSize = currentSettings['reverb']?['roomSize'] ??
             AudioConfig.defaultReverbRoomSize;
-        _reverbWet =
-            currentSettings['reverb']?['wet'] ?? AudioConfig.defaultReverbWet;
         _reverbDamp =
             currentSettings['reverb']?['damp'] ?? AudioConfig.defaultReverbDamp;
         // Load delay settings properly
@@ -115,6 +112,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _applyCurrentEffects() {
+    final currentSettings = widget.audioController.getCurrentEffectSettings();
+
     // Apply biquad effect with all parameters
     widget.audioController.applyEffect(
       AudioEffectType.biquad,
@@ -130,10 +129,12 @@ class _SettingsPageState extends State<SettingsPage> {
     widget.audioController.applyEffect(
       AudioEffectType.reverb,
       {
-        'intensity': _reverbWet,
+        'intensity':
+            currentSettings['reverb']?['wet'] ?? AudioConfig.defaultReverbWet,
         'roomSize': _reverbRoomSize,
         'damp': _reverbDamp,
-        'wet': _reverbWet,
+        'wet':
+            currentSettings['reverb']?['wet'] ?? AudioConfig.defaultReverbWet,
       },
     );
 
@@ -167,7 +168,6 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       _reverbRoomSize = AudioConfig.defaultReverbRoomSize;
       _reverbDamp = AudioConfig.defaultReverbDamp;
-      _reverbWet = AudioConfig.defaultReverbWet;
       _delayTime = AudioConfig.defaultEchoDelay;
       _delayDecay = AudioConfig.defaultEchoDecay;
       _delayWet = AudioConfig.defaultEchoWet;
@@ -212,17 +212,20 @@ class _SettingsPageState extends State<SettingsPage> {
             context: context,
             reverbRoomSize: _reverbRoomSize,
             reverbDamp: _reverbDamp,
-            reverbWet: _reverbWet,
             onRoomSizeChanged: (roomSizeValue) {
               setState(() {
                 _reverbRoomSize = roomSizeValue;
+                final currentSettings =
+                    widget.audioController.getCurrentEffectSettings();
                 widget.audioController.applyEffect(
                   AudioEffectType.reverb,
                   {
-                    'intensity': _reverbWet,
+                    'intensity': currentSettings['reverb']?['wet'] ??
+                        AudioConfig.defaultReverbWet,
                     'roomSize': roomSizeValue,
                     'damp': _reverbDamp,
-                    'wet': _reverbWet,
+                    'wet': currentSettings['reverb']?['wet'] ??
+                        AudioConfig.defaultReverbWet,
                   },
                 );
               });
@@ -230,27 +233,17 @@ class _SettingsPageState extends State<SettingsPage> {
             onDampChanged: (dampValue) {
               setState(() {
                 _reverbDamp = dampValue;
+                final currentSettings =
+                    widget.audioController.getCurrentEffectSettings();
                 widget.audioController.applyEffect(
                   AudioEffectType.reverb,
                   {
-                    'intensity': _reverbWet,
+                    'intensity': currentSettings['reverb']?['wet'] ??
+                        AudioConfig.defaultReverbWet,
                     'roomSize': _reverbRoomSize,
                     'damp': dampValue,
-                    'wet': _reverbWet,
-                  },
-                );
-              });
-            },
-            onWetChanged: (wetValue) {
-              setState(() {
-                _reverbWet = wetValue;
-                widget.audioController.applyEffect(
-                  AudioEffectType.reverb,
-                  {
-                    'intensity': wetValue,
-                    'roomSize': _reverbRoomSize,
-                    'damp': _reverbDamp,
-                    'wet': wetValue,
+                    'wet': currentSettings['reverb']?['wet'] ??
+                        AudioConfig.defaultReverbWet,
                   },
                 );
               });
