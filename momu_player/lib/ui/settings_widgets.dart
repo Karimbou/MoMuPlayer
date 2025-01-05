@@ -78,11 +78,13 @@ class SettingsWidgets {
     );
   }
 
-  static Widget buildReverbSettings(
-    BuildContext context,
-    double reverbRoomSize,
-    void Function(double) onChanged,
-  ) {
+  static Widget buildReverbSettings({
+    required BuildContext context,
+    required double reverbRoomSize,
+    required double reverbDamp,
+    required ValueChanged<double> onRoomSizeChanged,
+    required ValueChanged<double> onDampChanged,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -94,9 +96,15 @@ class SettingsWidgets {
         buildSliderSection(
           context,
           'Room Size',
-          reverbRoomSize.clamp(
-              AudioConfig.minValue, AudioConfig.maxValue), // Added clamping
-          onChanged,
+          reverbRoomSize.clamp(AudioConfig.minValue, AudioConfig.maxValue),
+          onRoomSizeChanged,
+        ),
+        const SizedBox(height: 16),
+        buildSliderSection(
+          context,
+          'Damping',
+          reverbDamp.clamp(AudioConfig.minValue, AudioConfig.maxValue),
+          onDampChanged,
         ),
       ],
     );

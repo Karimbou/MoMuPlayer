@@ -127,46 +127,54 @@ class _DeskPageState extends State<DeskPage> {
         return;
       }
 
-      final effectParams = <String, double>{
-        'wet': wetValue,
-        'intensity': wetValue,
-      };
+      // Get current settings to preserve other parameters
+      final currentSettings = widget.audioController.getCurrentEffectSettings();
 
-      switch (selectedFilter) {
-        case Filter.reverb:
-          effectParams['roomSize'] = wetValue;
-          widget.audioController.applyEffect(
-            AudioEffectType.reverb,
-            effectParams,
-          );
-          break;
-
-        case Filter.delay:
-          effectParams['delay'] = wetValue;
-          effectParams['decay'] = AudioConfig.defaultEchoDecay;
-          widget.audioController.applyEffect(
-            AudioEffectType.delay,
-            effectParams,
-          );
-          break;
-
-        case Filter.biquad:
-          effectParams['frequency'] = wetValue;
-          effectParams['resonance'] = 0.5;
-          effectParams['type'] = 0.0; // Lowpass filter
-          effectParams['type'] = 0.0;
-          widget.audioController.applyEffect(
-            AudioEffectType.biquad,
-            effectParams,
-          );
-          break;
-
-        case Filter.none:
-          // This case is handled above
-          break;
+      // Always apply wet value to all active effects
+      if (selectedFilter == Filter.reverb ||
+          currentSettings['reverb'] != null) {
+        widget.audioController.applyEffect(
+          AudioEffectType.reverb,
+          {
+            'intensity': wetValue,
+            'roomSize': currentSettings['reverb']?['roomSize'] ?? wetValue,
+            'damp': currentSettings['reverb']?['damp'] ??
+                AudioConfig.defaultReverbDamp,
+            'wet': wetValue,
+          },
+        );
       }
-      _log.info(
-          'Applied ${selectedFilter.name} effect with intensity: $wetValue');
+
+      if (selectedFilter == Filter.delay || currentSettings['delay'] != null) {
+        widget.audioController.applyEffect(
+          AudioEffectType.delay,
+          {
+            'intensity': wetValue,
+            'delay': currentSettings['delay']?['delay'] ??
+                AudioConfig.defaultEchoDelay,
+            'decay': currentSettings['delay']?['decay'] ??
+                AudioConfig.defaultEchoDecay,
+            'wet': wetValue,
+          },
+        );
+      }
+
+      if (selectedFilter == Filter.biquad ||
+          currentSettings['biquad'] != null) {
+        widget.audioController.applyEffect(
+          AudioEffectType.biquad,
+          {
+            'intensity': wetValue,
+            'frequency': currentSettings['biquad']?['frequency'] ??
+                AudioConfig.defaultBiquadFrequency,
+            'resonance': 0.5,
+            'type': 0.0, // Lowpass filter
+            'wet': wetValue,
+          },
+        );
+      }
+
+      _log.info('Applied effects with global wet: $wetValue');
     } catch (e) {
       _log.severe('Failed to apply effect', e);
       if (mounted) {
