@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// Loading screen widget for the application. Displays a loading spinner and a message indicating the app is loading.
 class LoadingScreen extends StatelessWidget {
+  /// The constructor for the LoadingScreen widget.
   const LoadingScreen({super.key});
 
   @override

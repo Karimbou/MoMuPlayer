@@ -1,11 +1,16 @@
 import '../audio/audio_config.dart';
-
+/// Setting for the type of biquad filter
 enum BiquadFilterType {
+  /// Defines biquad filter here lowpass
   lowpass,
+  /// Defines biquad filter here highpass
   highpass,
+  /// Defines biquad filter here bandpass
   bandpass,
+  /// Defines biquad filter here notch
   notch;
 
+  /// Sets an integer value based on the enum and returns the value to Audioconfig 
   int get value {
     switch (this) {
       case BiquadFilterType.lowpass:
@@ -18,7 +23,7 @@ enum BiquadFilterType {
         return AudioConfig.notchFilter;
     }
   }
-
+/// Sets an String displayName based on the enum and returns a defind String 
   String get displayName {
     switch (this) {
       case BiquadFilterType.lowpass:

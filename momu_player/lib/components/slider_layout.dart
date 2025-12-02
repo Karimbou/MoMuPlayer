@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// Gets the custom slider theme data
+/// Customizes the slider theme for a custom UI experience
 SliderThemeData getCustomSliderTheme(BuildContext context) {
   return SliderTheme.of(context).copyWith(
     activeTrackColor: Colors.white,

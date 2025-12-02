@@ -6,6 +6,10 @@ import 'audio_effect.dart';
 /// {@category Audio}
 
 class DelayEffect with WetDryMixin implements AudioEffect {
+  
+  /// Create a new DelayEffect instance with the provided  soloud instance
+  DelayEffect(this._soloud);
+
   @override
   final Logger log = Logger('DelayEffect');
   final SoLoud _soloud;
@@ -14,7 +18,7 @@ class DelayEffect with WetDryMixin implements AudioEffect {
   double _delay = AudioConfig.defaultEchoDelay;
   double _decay = AudioConfig.defaultEchoDecay;
 
-  DelayEffect(this._soloud);
+  
 
   @override
   void apply() {
@@ -38,14 +42,14 @@ class DelayEffect with WetDryMixin implements AudioEffect {
       log.severe('Failed to apply delay effect', e);
     }
   }
-
+  /// Sets the delay time in milliseconds
   void setDelay(double delay) {
     _delay = delay.clamp(AudioConfig.minValue, AudioConfig.maxValue);
     if (_soloud.filters.echoFilter.isActive) {
       _soloud.filters.echoFilter.delay.value = _delay;
     }
   }
-
+  /// Sets the decay time in milliseconds
   void setDecay(double decay) {
     _decay = decay.clamp(AudioConfig.minValue, AudioConfig.maxValue);
     if (_soloud.filters.echoFilter.isActive) {

@@ -11,32 +11,30 @@ import '../audio/reverb_effect.dart';
 enum AudioEffectType {
   /// No effect applied
   none,
-
   /// Reverb effect with parameters:
   /// - intensity: Overall effect strength (required)
   /// - roomSize: Size of reverb room, range: 0.0 to 1.0 (optional)
   /// - wet: Wet/dry mix, range: 0.0 to 1.0 (optional)
   reverb,
-
   /// Delay effect with parameters:
   /// - intensity: Overall effect strength (required)
   /// - delay: Delay time in milliseconds, range: 0 to 1000 (optional)
   /// - decay: Decay rate, range: 0.0 to 1.0 (optional)
   /// - wet: Wet/dry mix, range: 0.0 to 1.0 (optional)
   delay,
-
   /// Biquad filter with parameters:
   /// - intensity: Overall effect strength (required)
   /// - frequency: Normalized frequency, range: 0.0 to 1.0 (optional)
   biquad,
 }
-
 /// Exception for audio effects related errors
 class AudioEffectsException implements Exception {
-  final String message;
-  final dynamic originalError;
-
+  /// Message describing the exception 
   AudioEffectsException(this.message, [this.originalError]);
+  /// String describing the original error if available
+  final String message;
+  /// Original error that caused the exception if available 
+  final dynamic originalError;
 
   @override
   String toString() =>
@@ -45,22 +43,22 @@ class AudioEffectsException implements Exception {
 
 /// Controller responsible for managing audio effects and their states
 class AudioEffectsController {
+  /// Core dependency for audio processing and effects
   AudioEffectsController(this._soloud) {
     _initializeEffects();
   }
   static final Logger _log = Logger('AudioEffectsController');
 
-  // Core dependencies
+  /// This method initializes the audio effects and sets up the initial state of the controller.
   final SoLoud _soloud;
-
-  // Effect instances
+  /// This defines the variables that define the state of the controller. 
   late final ReverbEffect _reverbEffect;
   late final DelayEffect _delayEffect;
   late final BiquadEffect _biquadEffect;
 
-  // Saved state
+  /// This Map stores the state of the effects. It is used to save and restore the state of the effects.
   Map<String, Map<String, double>>? _savedState;
-
+  /// This Function is used to save the state of the effects.
   void _initializeEffects() {
     try {
       _reverbEffect = ReverbEffect(_soloud);
@@ -81,25 +79,24 @@ class AudioEffectsController {
       throw AudioEffectsException(
           'Missing required parameter: intensity for $type');
     }
-
+    /// The intensity parameter should be between 0 and 1.0
     final intensity = parameters['intensity']!;
     if (intensity < AudioConfig.minValue || intensity > AudioConfig.maxValue) {
       throw AudioEffectsException(
           'Intensity value out of range: $intensity. Must be between ${AudioConfig.minValue} and ${AudioConfig.maxValue}');
     }
   }
-
   /// Applies an audio effect with the specified parameters
   void applyEffect(AudioEffectType type, Map<String, double> parameters) {
     try {
       _log.info('Applying effect: $type');
       _log.fine('Input parameters: $parameters');
-
+      /// Validate the parameters for the effect type before applying it
       _validateParameters(type, parameters);
-
+      /// Apply the effect based on its type and parameters 
       final previousState = getAllEffectSettings();
       _log.fine('Previous effect state: $previousState');
-
+      /// This switch statement is used to determine the specific implementation of the effect type and its parameters 
       switch (type) {
         case AudioEffectType.none:
           _log.fine('Deactivating all effects');
@@ -136,7 +133,7 @@ class AudioEffectsController {
           _biquadEffect.apply();
           break;
       }
-
+      /// Apply the selected audio effect to the audio stream or stream source.
       final newState = getAllEffectSettings();
       _log.fine('New effect state: $newState');
 
@@ -154,7 +151,6 @@ class AudioEffectsController {
       throw error;
     }
   }
-
   /// Deactivates all effects without changing their settings
   void deactivateAllEffects() {
     try {
@@ -168,7 +164,6 @@ class AudioEffectsController {
       throw error;
     }
   }
-
   /// Gets the current settings of all effects
   Map<String, Map<String, double>> getAllEffectSettings() {
     try {
@@ -183,7 +178,6 @@ class AudioEffectsController {
       throw error;
     }
   }
-
   /// Saves the current state of all effects
   void saveCurrentState() {
     try {
@@ -195,7 +189,6 @@ class AudioEffectsController {
       throw error;
     }
   }
-
   /// Restores previously saved effect state
   void restoreState() {
     try {
@@ -203,9 +196,9 @@ class AudioEffectsController {
         _log.warning('No saved state to restore');
         return;
       }
-
+      /// Sets the effect settings based on the saved state from the saved state. This is a placeholder for the actual restoration logic. 
       final state = _savedState!;
-
+      /// Loop checks each effect and applies the saved settings. 
       if (state.containsKey('reverb')) {
         final reverbSettings = state['reverb']!;
         _reverbEffect

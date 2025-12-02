@@ -1,0 +1,6 @@
+name: Continue Docs MCP
+version: 0.0.2
+schema: v1
+mcpServers:
+  - name: Continue Docs MCP
+    url: https://docs.continue.dev/mcp

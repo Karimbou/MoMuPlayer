@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Theme for the segmented button layout in the app
 SegmentedButtonThemeData segmentedButtonLayout(BuildContext context) {
   return SegmentedButtonThemeData(
     style: ButtonStyle(

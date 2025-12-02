@@ -9,11 +9,13 @@ final Logger _log = Logger('LoadAssets');
 late final SoLoud _soloud;
 late final Map<String, AudioSource> _preloadedSounds;
 
+/// Initializes the SoLoud instance and preloads the Sounds
 void setupLoadAssets(SoLoud soloud, Map<String, AudioSource> preloadedSounds) {
   _soloud = soloud;
   _preloadedSounds = preloadedSounds;
 }
 
+/// Initialize loading assets for the application and returns a map of AudioSource objects
 Future<void> loadAssets() async {
   try {
     _log.info('Starting to load audio assets...');
@@ -133,7 +135,7 @@ Future<List<String>> _loadPianoChords() async {
   }
 }
 
-// Update switchInstrumentSounds to use the tracking
+/// Loads instrument-specific sounds and tracks their loading status, update switchInstrumentSounds to use the tracking
 Future<void> switchInstrumentSounds(String instrumentType) async {
   try {
     _log.info('Starting instrument switch to: $instrumentType');

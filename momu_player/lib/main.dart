@@ -1,10 +1,6 @@
-// Copyright (c) 2024 Ryotaro Narita. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be found
-// in the LICENSE file.
+// Copyright (c) 2024 Karim Bouhouchi. All rights reserved.
 
-/// music player application implementation in Flutter
-///
-/// The app consists of following key components:
+
 library;
 
 /// * Audio playback controller
@@ -78,7 +74,9 @@ void main() async {
 /// * Audio controller lifecycle
 /// * Navigation between main screens
 class MoMuPlayerApp extends StatefulWidget {
+  /// Constructor for MoMuPlayerApp, takes an Audio
   const MoMuPlayerApp({required this.audioController, super.key});
+  /// Audiocontroller controlls the SoLoud Audio features
   final AudioController audioController;
   @override
   State<MoMuPlayerApp> createState() => _MoMuPlayerAppState();
@@ -136,6 +134,7 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
           primaryColor: const Color(0xFF0A0E21),
           scaffoldBackgroundColor: const Color(0xFF0A0E21),
         ),
+        /// Function to handle the loading screen from loading_screen.dart
         home: const LoadingScreen(),
       );
     }

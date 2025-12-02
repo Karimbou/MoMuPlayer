@@ -1,5 +1,5 @@
 import 'package:logging/logging.dart';
-import 'package:momu_player/controller/audio_controller.dart';
+import 'audio_controller.dart';
 import '../model/settings_model.dart';
 import '../audio/audio_config.dart';
 import 'audio_effects_controller.dart';
@@ -7,12 +7,13 @@ import 'audio_effects_controller.dart';
 final Logger _log = Logger('SettingsController');
 
 /// {@category Controllers}
-
+/// The SettingsController class manages the audio settings and effects for the application.  
 class SettingsController {
-  final AudioController audioController;
-
+  /// This property holds the `AudioController` object that manages the audio playback.  
   SettingsController(this.audioController);
-
+  /// The constructor takes an `AudioController` object as a parameter and initializes the `audioController` property.  
+  final AudioController audioController;
+  /// This function sets the SoLoud reverb filter with the specified parameters.  
   void updateReverbFilter(double value) {
     try {
       audioController.applyEffect(
@@ -28,7 +29,7 @@ class SettingsController {
       _log.severe('Failed to update reverb settings: $e');
     }
   }
-
+  /// This function sets the SoLoud echo filter with the specified parameters.  
   void updateDelayFilter(double value, {bool isDecay = false}) {
     try {
       final parameters = isDecay
@@ -51,7 +52,7 @@ class SettingsController {
       _log.severe('Failed to update delay settings: $e');
     }
   }
-
+  /// This function sets the SoLoud BiQuad filter with the specified parameters.  
   void updateBiQuadFilter(double value) {
     try {
       audioController.applyEffect(
@@ -67,11 +68,11 @@ class SettingsController {
       _log.severe('Failed to update biquad settings: $e');
     }
   }
-
+  /// This Map holds the current settings of the audio controller, including the biquad filter frequency and wetness. 
   Map<String, double> getCurrentSettings() {
     try {
       final allSettings = audioController.getCurrentEffectSettings();
-
+      /// Convert the settings to the Map for easier access. 
       return {
         'biquadFrequency': allSettings['biquad']?['frequency'] ??
             AudioConfig.defaultBiquadFrequency,
@@ -94,7 +95,7 @@ class SettingsController {
       };
     }
   }
-
+  /// This method converts a string representing the sound type to its representation in the `SoundType`.  
   SoundType getSoundTypeFromString(String soundName) {
     switch (soundName.toLowerCase()) {
       case 'wurli':
