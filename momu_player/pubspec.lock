@@ -162,10 +162,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_soloud
-      sha256: "037481b8a78008c3c0108e9cdbf336d84273f5aab1c55aa6bc14734bb19c5b69"
+      sha256: e9b9da5f38af4946b5496276a932c63aea4780986c104e30c75f75d3c77ef22a
       url: "https://pub.dev"
     source: hosted
-    version: "3.4.4"
+    version: "3.4.5"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -303,18 +303,18 @@ packages:
     dependency: transitive
     description:
       name: path_provider_android
-      sha256: "95c68a74d3cab950fd0ed8073d9fab15c1c06eb1f3eec68676e87aabc9ecee5a"
+      sha256: f2c65e21139ce2c3dad46922be8272bb5963516045659e71bb16e151c93b580e
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.21"
+    version: "2.2.22"
   path_provider_foundation:
     dependency: transitive
     description:
       name: path_provider_foundation
-      sha256: "97390a0719146c7c3e71b6866c34f1cde92685933165c1c671984390d2aca776"
+      sha256: "6d13aece7b3f5c5a9731eaf553ff9dcbc2eff41087fd2df587fd0fed9a3eb0c4"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.4"
+    version: "2.5.1"
   path_provider_linux:
     dependency: transitive
     description:
