@@ -9,18 +9,18 @@ MoMu is meant to make music players accessible to anyone and to play more music.
  
 # What the MoMu Player does.
 
-The MoMu-Player is designed to be simple and easy to use. It can play one octave of predifned sounds (Wurli, Xylophone, Piano as of now). It can mix Reverb, Echo and Filter into the sounds so you can create your own sounds. It is made for Kids or People who want to create music but are not good with Keyboards. 
+The MoMu-Player is designed to be simple and easy to use. It can play one octave of predifned sounds (Wurli, Xylophone, Piano as of now). It can mix Reverb, Echo and Filter into the sounds so you can create your own sounds. It is made for Kids or People who wants to create music but are not good with Keyboards. 
 
 # What is used in my project.
 
-The Project is written in Flutter so it can be deployed on any platform (mobile, web, desktop, and embedded devices). It uses the Flutter framework to build user interfaces and it uses the SoLoud Audio Engine to play audio.
+The Project is written in Flutter so it can be deployed on any platform (mobile, web, desktop, and embedded devices). It uses the Flutter framework because of the easyiness to build user interfaces and it uses the SoLoud Audio Engine to play audio.
 - https://flutter.dev/
 
 The underlying audioengine is called SoLoud and offers a lot of features. SoLoud is an easy to use, free, portable c/c++ audio engine for games and was written by Jari Komppa.
 - https://solhsa.com/soloud/index.html
 - https://solhsa.com/
 
-It is embedded in my project with the flutter_soloud package which was written by Marco Bavagnoli to allow me to use SoLoud in my Flutter app. The flutter_soloud package allows me to implemnt Soundseffects like Filters, Reverb, Echo and more. SoLoud was written by Jari Komppa in C++ and it is used by many other projects (mainly in the gaming area). In a later version I want to implement more Effects, perhaps the Musicplayer and the Midi-Solution. 
+It is embedded in my project with the flutter_soloud package which was written by Marco Bavagnoli and that package allows me to use SoLoud in my Flutter app. The flutter_soloud package than allows me to implement Soundseffects like Filters, Reverb, Echo and more. In a later version I want to implement more Effects, perhaps the Musicplayer and the Midi-Solution. 
 At this stage a Filter, Reverb and an Delayeffect is already implemented. 
 - https://pub.dev/packages/flutter_soloud
 - https://marcobavagnoli.com/
