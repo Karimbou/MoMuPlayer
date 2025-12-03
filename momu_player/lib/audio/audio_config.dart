@@ -15,7 +15,6 @@
 class AudioConfig {
   /// The minimum allowed value for audio parameters
   static const double minValue = 0.0;
-
   /// The maximum allowed value for audio parameters
   static const double maxValue = 1.0;
 
@@ -28,6 +27,7 @@ class AudioConfig {
   /// Delay in milliseconds before initialization starts
   static const int initializationDelayMs = 100;
 
+  // ------------------- Echo Filter Constants -------------------
   /// Default wet/dry mix for echo effect (0.0 - 1.0)
   static const double defaultEchoWet = 0.3;
 
@@ -36,7 +36,8 @@ class AudioConfig {
 
   /// Default decay rate for echo repeats (0.0 - 1.0)
   static const double defaultEchoDecay = 0.3;
-
+  
+  // ------------------- Reverb Constants ------------------------
   /// Default wet/dry mix for reverb Wettness (0.0 - 1.0)
   static const double defaultReverbWet = 0.3;
 
@@ -46,6 +47,7 @@ class AudioConfig {
   /// Default room size parameter for reverb Damp (0.0 - 1.0)
   static const double defaultReverbDamp = 0.5;
 
+  // ------------------- Biquad Filter Constants -------------------
   /// Default center frequency for BiQuad filter, normalized 0.0 - 1.0
   static const double defaultBiquadFrequency = 0.5;
 
@@ -76,6 +78,7 @@ class AudioConfig {
   /// Maximum frequency in Hz for BiQuad filter
   static const double maxFrequencyHz = 20000.0;
 
+  // ----------------- Default Instrument ------------------------
   /// Default instrument sound to use
   static const String defaultInstrument = 'wurli';
 }
