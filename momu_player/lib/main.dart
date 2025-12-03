@@ -1,6 +1,5 @@
 // Copyright (c) 2024 Karim Bouhouchi. All rights reserved.
 
-
 library;
 
 /// * Audio playback controller

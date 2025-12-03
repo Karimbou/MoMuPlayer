@@ -8,7 +8,7 @@ import '../audio/biquad_filter_type.dart';
 /// This class contains all the widgets related to the settings section of the app. 
 /// It includes widgets for sliders, segmented buttons, and other settings-related widgets.
 class SettingsWidgets {
-  
+
   /// This method builds a slider widget with the given label and value. 
   /// It also provides a callback function to update the value when the slider is moved. 
   static Widget buildSliderSection(
@@ -103,14 +103,14 @@ class SettingsWidgets {
         buildSliderSection(
           context,
           'Room Size',
-          reverbRoomSize, // Removed clamp - let the slider handle it
+          reverbRoomSize,
           onRoomSizeChanged,
         ),
         const SizedBox(height: 16),
         buildSliderSection(
           context,
           'Damping',
-          reverbDamp, // Removed clamp - let the slider handle it
+          reverbDamp, 
           onDampChanged,
         ),
       ],
