@@ -1,5 +1,3 @@
-// ignore_for_file: public_member_api_docs
-
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import '../audio/audio_config.dart';
@@ -24,10 +22,10 @@ import '../components/segmentedbutton_layout.dart';
 /// The page manages audio playback and effects through an [AudioController].
 /// Effect settings are persisted between sessions.
 enum Filter {
-  none,
   reverb,
   delay,
   biquad,
+  none,
 }
 
 // Move to a separate file if more configs are added
