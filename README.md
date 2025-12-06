@@ -9,7 +9,7 @@ MoMu is meant to make music players accessible to anyone and to play more music.
  
 # What the MoMu Player does.
 
-The MoMu-Player is designed to be simple and easy to use. It can play one octave of predifned sounds (Wurli, Xylophone, Piano as of now). It can mix Reverb, Echo and Filter into the sounds so you can create your own sounds. It is made for Kids or People who wants to create music but are not good with Keyboards. 
+The MoMu-Player is designed to be simple and easy to use. It can play one octave of predefined sounds (Wurli, Xylophone, Piano as of now). It can mix Reverb, Echo and Filter into the those sounds so you can create your own sounds. It is made for Kids or People who wants to create music but are not good with Keyboards. 
 
 # What is used in my project.
 
@@ -32,7 +32,8 @@ As I am a beginner in flutter programming so I got a lot of help from Claude (An
 
 and I also use Olllama for all the local LLM models like qwen3-coder30b (recommended) and devstral which helps my nowadays because Claude got so expensive.
 - https://ollama.com/
-- https://ollama.com/library/qwen3-coder
+- https://ollama.com/library/qwen2.5-coder/tags (chat, edit / 14b because I have an MacMini M4 with 24 GByte Ram)
+- https://ollama.com/library/qwen3-coder (only for architect tasks)
 
 I use qwen2.5-coder:1.5b for autocompletion
 - https://ollama.com/library/qwen2.5-coder
