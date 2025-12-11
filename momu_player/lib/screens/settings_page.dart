@@ -29,14 +29,13 @@ class SettingsException implements Exception {
 /// Creates the SettingsPage widget.
 /// This widget is responsible for displaying the settings of the used filters and sounds of this player and is handling the
 /// user interactions with those settings.
+// In settings_page.dart - Update the SettingsPage widget to accept the parameters
 class SettingsPage extends StatefulWidget {
-  /// The key for the SettingsPage widget.
   const SettingsPage({
     super.key,
-    required this.audioController,
+    required this.audioController,    
   });
 
-  /// Sets the AudioController instance for the SettingsPage widget.
   final AudioController audioController;
 
   @override
