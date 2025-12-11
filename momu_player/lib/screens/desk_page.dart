@@ -10,68 +10,32 @@ import '../components/slider_layout.dart';
 import '../components/segmentedbutton_layout.dart';
 
 /// {@category Screens}
-///
-/// A page that displays a musical interface with sound keys and audio effects.
-///
-/// The DeskPage consists of:
-/// - A grid of colored sound keys that play different notes when pressed
-/// - Audio effect controls including reverb, delay, and biquad filter
-/// - A slider to control the intensity of the selected effect
-/// - A settings button to access additional configuration options
-///
-/// The page manages audio playback and effects through an [AudioController].
-/// Effect settings are persisted between sessions.
-enum Filter {
-  /// Reverb effect
-  reverb,
-  /// Delay effect
-  delay,
-  /// Filter effect
-  biquad,
-  /// None effect
-  none,
-}
-
-// Move to a separate file if more configs are added
-/// Configuration for individual sound key buttons
-///
-/// Contains the color and associated sound file path for a key.
-class SoundKeyConfig {
-  /// The color of the sound key button.
-  const SoundKeyConfig({
-    required this.color,
-    this.soundPath,
-  });
-  /// Constants for colors for the sound keys.
-  final Color color;
-  /// The path to the sound file associated with the key.
-  final String? soundPath;
-}
-
-/// The main desk page widget that provides the musical interface
 class DeskPage extends StatefulWidget {
-  /// The title of the desk page.
+  /// Constructor for DeskPage widget
   const DeskPage({
     super.key,
     required this.title,
     required this.audioController,
   });
-  /// The title of the desk page.
+  /// Sets the title of the screen
   final String title;
-  /// The audio controller used to manage audio playback and effects.
+  /// Sets the audio controller instance
   final AudioController audioController;
 
   @override
   State<DeskPage> createState() => _DeskPageState();
 }
-/// class that defines the Deskpage state
+
 class _DeskPageState extends State<DeskPage> {
   static final Logger _log = Logger('DeskPage');
-  double wetValue = AudioConfig.defaultWet ?? 0.5; // Ensure non-nullability
-  Set<Filter> selectedFilters = {};
-
-  /// Sound key configurations for the desk page. Each list represents a row of sound keys. 
-  /// Each list contains a list of sound keys for that row.
+  
+  // Use a single source of truth for wet value
+  double wetValue = AudioConfig.defaultWet ?? 0.5;
+  
+  // Simplified filter selection - only track which filters are active
+  Set<AudioEffectType> selectedEffects = {};
+  
+  // Sound key configurations for the desk page
   static const List<List<SoundKeyConfig>> soundKeyConfigs = [
     [
       SoundKeyConfig(color: kTabColorGreen, soundPath: 'note_c'),
@@ -91,131 +55,136 @@ class _DeskPageState extends State<DeskPage> {
     ],
   ];
 
-    
-  Map<String, bool> selectedEffects = {}; // Track selected effects
-  double wetness = 0.5; // Default wetness value
-
   @override
   void initState() {
     super.initState();
+      _log.info('DeskPage initState called');
+
     _initializeEffects();
   }
 
   Future<void> _initializeEffects() async {
+      _log.info('Initializing audio effects');
     await widget.audioController.initialized;
     if (!mounted) return;
 
     final currentSettings = widget.audioController.getCurrentEffectSettings();
-    setState(() {
-      selectedFilters = {
-        if (currentSettings['reverb']?['wet'] != null) Filter.reverb,
-        if (currentSettings['delay']?['wet'] != null) Filter.delay,
-        if (currentSettings['biquad']?['wet'] != null) Filter.biquad,
-      };
+      _log.info('Retrieved current effect settings: $currentSettings');
 
-      if (selectedFilters.isEmpty) {
-        selectedFilters.add(Filter.none);
-      }
+    
+    // Convert settings to effect types for easier handling
+    final activeEffects = <AudioEffectType>{};
+    
+    if (currentSettings['reverb']?['wet'] != null) {
+      activeEffects.add(AudioEffectType.reverb);
+        _log.info('Reverb effect detected and added to active effects');
+
+    }
+    if (currentSettings['delay']?['wet'] != null) {
+      activeEffects.add(AudioEffectType.delay);
+        _log.info('Delay effect detected and added to active effects');
+
+    }
+    if (currentSettings['biquad']?['wet'] != null) {
+      activeEffects.add(AudioEffectType.biquad);
+        _log.info('Biquad effect detected and added to active effects');
+
+    }
+    
+    setState(() {
+      selectedEffects = activeEffects;
+        _log.info('Set initial selected effects: $selectedEffects');
     });
   }
 
-void _handleFilterChange(Set<Filter> value) {
-  setState(() {
-    if (value.contains(Filter.none)) {
-      // If "Off" is selected, deselect all other filters
-      selectedFilters = {Filter.none};
-    } else {
-      // Remove Filter.none if it exists (since we're selecting specific filters)
-      selectedFilters.remove(Filter.none);
+  void _handleFilterChange(Set<AudioEffectType> value) {
+    _log.info('Filter change requested: $value');
 
-      // Toggle the filter in the set
-      for (final filter in value) {
-        if (selectedFilters.contains(filter)) {
-          selectedFilters.remove(filter);
-        } else {
-          selectedFilters.add(filter);
-        }
-      }
+    setState(() {
+      selectedEffects = value;
+      _applyFilter();
+    });
+  }
 
-      // If no filters are selected, add Filter.none back
-      if (selectedFilters.isEmpty) {
-        selectedFilters.add(Filter.none);
-      }
-    }
-
-    _applyFilter();
-  });
-}
-
-
-  /// This function applies the selected filters to the audio. 
-  /// It first deactivates the effects if no filters are selected and then activates the selected filters. 
-  /// It also updates the UI to reflect the changes. 
-  /// It also logs the process.
   /// Apply the selected filters to audio
-void _applyFilter() {
-  try {
-    widget.audioController.deactivateEffects();
-
-    for (final filter in selectedFilters) {
-      switch (filter) {
-        case Filter.reverb:
-          widget.audioController.applyEffect(
-            AudioEffectType.reverb,
-            {
-              'intensity': wetValue,
-              'roomSize': AudioConfig.defaultReverbRoomSize,
-              'damp': AudioConfig.defaultReverbDamp,
-              'wet': wetValue,
-            },
-          );
-          break;
-        case Filter.delay:
-          widget.audioController.applyEffect(
-            AudioEffectType.delay,
-            {
-              'intensity': wetValue,
-              'delay': AudioConfig.defaultEchoDelay,
-              'decay': AudioConfig.defaultEchoDecay,
-              'wet': wetValue,
-            },
-          );
-          break;
-        case Filter.biquad:
-          widget.audioController.applyEffect(
-            AudioEffectType.biquad,
-            {
-              'intensity': wetValue,
-              'frequency': AudioConfig.defaultBiquadFrequency,
-              'resonance': 0.5,
-              'type': 0.0, // Lowpass filter
-              'wet': wetValue,
-            },
-          );
-          break;
-        case Filter.none:
-          widget.audioController.deactivateEffects();
-          break;
+  void _applyFilter() {
+      _log.info('Applying filters with wetValue: $wetValue');
+    try {
+      // Deactivate all effects first
+      widget.audioController.deactivateEffects();
+        _log.info('All effects deactivated');
+      // Apply selected effects
+      for (final effect in selectedEffects) {
+        _applyEffect(effect);
+          _log.info('Applied effect: $effect');
+      }     
+      _log.info('Applied effects with global wet: $wetValue');
+    } catch (e) {
+      _log.severe('Failed to apply effect', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to apply effect: ${e.toString()}')),
+        );
       }
-    }
-
-    _log.info('Applied effects with global wet: $wetValue');
-  } catch (e) {
-    _log.severe('Failed to apply effect', e);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to apply effect: ${e.toString()}')),
-      );
     }
   }
-}
 
-/// Handle sound key press
+  /// Apply a specific effect with appropriate parameters
+  void _applyEffect(AudioEffectType effectType) {
+      _log.info('Applying effect: $effectType');
+    switch (effectType) {
+      case AudioEffectType.reverb:
+        widget.audioController.applyEffect(
+          AudioEffectType.reverb,
+          {
+            'intensity': wetValue,
+            'roomSize': AudioConfig.defaultReverbRoomSize,
+            'damp': AudioConfig.defaultReverbDamp,
+            'wet': wetValue,
+          },
+        );
+          _log.info('Reverb effect applied with parameters: intensity=$wetValue, roomSize=${AudioConfig.defaultReverbRoomSize}, damp=${AudioConfig.defaultReverbDamp}');
+        break;
+      case AudioEffectType.delay:
+        widget.audioController.applyEffect(
+          AudioEffectType.delay,
+          {
+            'intensity': wetValue,
+            'delay': AudioConfig.defaultEchoDelay,
+            'decay': AudioConfig.defaultEchoDecay,
+            'wet': wetValue,
+          },
+        );
+        _log.info('Delay effect applied with parameters: intensity=$wetValue, delay=${AudioConfig.defaultEchoDelay}, decay=${AudioConfig.defaultEchoDecay}');
+        break;
+      case AudioEffectType.biquad:
+        widget.audioController.applyEffect(
+          AudioEffectType.biquad,
+          {
+            'intensity': wetValue,
+            'frequency': AudioConfig.defaultBiquadFrequency,
+            'resonance': 0.5,
+            'type': 0.0, // Lowpass filter
+            'wet': wetValue,
+          },
+        );
+        _log.info('Biquad effect applied with parameters: intensity=$wetValue, frequency=${AudioConfig.defaultBiquadFrequency}');        break;
+      case AudioEffectType.none:
+            _log.warning('No effect is applied');
+        throw UnimplementedError();
+    }
+  }
+
+  /// Handle sound key press
   void _handleSoundKeyPress(String? soundPath) {
-    if (soundPath == null) return;
-
+        _log.info('Sound key pressed: $soundPath');
+   if (soundPath == null) {
+      _log.warning('Sound path is null');
+      return;
+    }
     try {
       widget.audioController.playSound(soundPath);
+        _log.info('Sound played successfully: $soundPath');
     } catch (e) {
       _log.severe('Failed to play sound: $soundPath', e);
       if (mounted) {
@@ -226,8 +195,9 @@ void _applyFilter() {
     }
   }
 
-    /// Build sound key row
+  /// Build sound key row
   Widget _buildSoundKeyRow(List<SoundKeyConfig> configs) {
+      _log.info('Building sound key row with ${configs.length} configs');
     return Expanded(
       child: Row(
         children: configs
@@ -242,8 +212,9 @@ void _applyFilter() {
     );
   }
 
-   /// Build filter section
+  /// Build filter section
   Widget _buildFilterSection() {
+        _log.info('Building filter section');
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15.0),
@@ -260,41 +231,38 @@ void _applyFilter() {
 
   /// Build filter buttons
   Widget _buildFilterButtons() {
+        _log.info('Building filter buttons with selected effects: $selectedEffects');
+
     return SegmentedButtonTheme(
       data: segmentedButtonLayout(context),
-      child: SegmentedButton<Filter>(
-        segments: const <ButtonSegment<Filter>>[
-          ButtonSegment<Filter>(
-            value: Filter.biquad,
+      child: SegmentedButton<AudioEffectType>(
+        segments: const <ButtonSegment<AudioEffectType>>[
+          ButtonSegment<AudioEffectType>(
+            value: AudioEffectType.biquad,
             label: Text('Filter'),
             tooltip: 'Frequency Filter',
           ),
-          ButtonSegment<Filter>(
-            value: Filter.reverb,
+          ButtonSegment<AudioEffectType>(
+            value: AudioEffectType.reverb,
             label: Text('Reverb'),
             tooltip: 'Room Reverb Effect',
           ),
-          ButtonSegment<Filter>(
-            value: Filter.delay,
+          ButtonSegment<AudioEffectType>(
+            value: AudioEffectType.delay,
             label: Text('Delay'),
             tooltip: 'Echo Delay Effect',
           ),
-          ButtonSegment<Filter>(
-            value: Filter.none,
-            label: Text('Off'),
-            tooltip: 'No Effects',
-          ),
         ],
-        selected: selectedFilters,
+        selected: selectedEffects,
         onSelectionChanged: _handleFilterChange,
         multiSelectionEnabled: true,
-        emptySelectionAllowed: true,
       ),
     );
   }
 
   /// Build effect slider
   Widget _buildEffectSlider() {
+        _log.info('Building effect slider with value: $wetValue');
     return SliderTheme(
       data: getCustomSliderTheme(context),
       child: Column(
@@ -316,19 +284,21 @@ void _applyFilter() {
   }
 
   /// Navigate to settings page
-void _navigateToSettings() {
-  Navigator.push(
-    context,
-    MaterialPageRoute<void>(
-      builder: (context) => SettingsPage(
-        audioController: widget.audioController,
+  void _navigateToSettings() {
+      _log.info('Navigating to settings page');
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (context) => SettingsPage(
+          audioController: widget.audioController,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   @override
-  /// Build the widget
   Widget build(BuildContext context) {
+      _log.info('Building DeskPage widget');
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -353,8 +323,8 @@ void _navigateToSettings() {
   }
 
   @override
-  /// Dispose of resources
   void dispose() {
+    _log.info('DeskPage dispose called');
     try {
       widget.audioController.saveEffectState();
     } catch (e) {
