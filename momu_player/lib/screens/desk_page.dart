@@ -111,12 +111,22 @@ class _DeskPageState extends State<DeskPage> {
       _log.info('Applying filters with wetValue: $wetValue');
     try {
       // Deactivate all effects first
+      if (selectedEffects.contains(AudioEffectType.none)) {
+        // If "Clear All" is selected, deactivate all effects and return
+        widget.audioController.deactivateEffects();
+        _log.info('All effects deactivated via Clear All button');
+        return;
+      }
+      
+      // Deactivate all effects first
       widget.audioController.deactivateEffects();
         _log.info('All effects deactivated');
       // Apply selected effects
       for (final effect in selectedEffects) {
-        _applyEffect(effect);
+        if (effect != AudioEffectType.none) { // Skip the none effect
+          _applyEffect(effect);
           _log.info('Applied effect: $effect');
+        }
       }     
       _log.info('Applied effects with global wet: $wetValue');
     } catch (e) {
@@ -170,8 +180,9 @@ class _DeskPageState extends State<DeskPage> {
         );
         _log.info('Biquad effect applied with parameters: intensity=$wetValue, frequency=${AudioConfig.defaultBiquadFrequency}');        break;
       case AudioEffectType.none:
-            _log.warning('No effect is applied');
-        throw UnimplementedError();
+            _log.info('Clearing all effects');
+            widget.audioController.deactivateEffects();
+        break;
     }
   }
 
@@ -252,10 +263,16 @@ class _DeskPageState extends State<DeskPage> {
             label: Text('Delay'),
             tooltip: 'Echo Delay Effect',
           ),
+           ButtonSegment<AudioEffectType>(
+            value: AudioEffectType.none,
+            label: Text('Clear'),
+            tooltip: 'Deactivate all effects',
+          ),
         ],
         selected: selectedEffects,
         onSelectionChanged: _handleFilterChange,
         multiSelectionEnabled: true,
+        emptySelectionAllowed: true,
       ),
     );
   }
