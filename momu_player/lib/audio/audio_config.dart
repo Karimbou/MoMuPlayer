@@ -81,6 +81,6 @@ class AudioConfig {
   // ----------------- Default Instrument ------------------------
   /// Default instrument sound to use
   static const String defaultInstrument = 'wurli';
-
+  /// Default effect Wetness 
   static double? get defaultWet => null;
 }

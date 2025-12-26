@@ -3,7 +3,7 @@
 library;
 
 /// Represents different types of musical instrument sounds
-/// SoundType  are used to differentiate between different types of sounds.
+/// SoundType are used to differentiate between different types of sounds.
 /// Used to specify which instrument sound should be played.
 /// - [wurli]: Wurlitzer electric piano sound
 /// - [xylophone]: Xylophone percussion sound
@@ -19,17 +19,17 @@ enum SoundType {
   piano, 
   /// Not defined yet
   sound4
-  }
+}
+
 /// Exception thrown when there are issues with settings
 ///
 /// Contains a [message] describing the error and optionally an [originalError]
 /// that caused this exception.
 class SettingsException implements Exception {
-
   /// Creates a [SettingsException] with the given error [message]
   /// and optional [originalError].
-  
   SettingsException(this.message, [this.originalError]);
+  
   /// The error message describing what went wrong
   final String message;
 
