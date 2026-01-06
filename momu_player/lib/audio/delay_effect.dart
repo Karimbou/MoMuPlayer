@@ -1,92 +1,84 @@
+// lib/audio/delay_effect.dart
 import 'package:logging/logging.dart';
-import 'package:flutter_soloud/flutter_soloud.dart';
-import '../../audio/audio_config.dart';
-import 'audio_effect.dart';
+import '../controller/audio_effects_controller.dart';
+import 'audio_config.dart';
 
 /// {@category Audio}
 
-class DelayEffect with WetDryMixin implements AudioEffect {
-  
-  /// Create a new DelayEffect instance with the provided  soloud instance
-  DelayEffect(this._soloud);
+/// Echo/Delay filter effect implementation with wet/dry mixing support
+class DelayEffect implements AudioEffect, WetDryMixin {
+  /// Creates a delay effect
+  DelayEffect();
 
   @override
   final Logger log = Logger('DelayEffect');
-  final SoLoud _soloud;
 
-  double _wet = AudioConfig.defaultEchoWet;
-  double _delay = AudioConfig.defaultEchoDelay;
+  /// Current wet level (0.0 - 1.0)
+  double _wetLevel = AudioConfig.defaultEchoWet;
+
+  /// Current delay time in seconds (0.0 - 2.0)
+  double _delayTime = AudioConfig.defaultEchoDelayTime;
+
+  /// Current decay rate (0.0 - 1.0)
   double _decay = AudioConfig.defaultEchoDecay;
-
-  
 
   @override
   void apply() {
-    try {
-      if (!_soloud.isInitialized) {
-        log.warning('Cannot apply delay - audio not initialized');
-        return;
-      }
-
-      if (!_soloud.filters.echoFilter.isActive) {
-        _soloud.filters.echoFilter.activate();
-      }
-
-      _soloud.filters.echoFilter.wet.value = _wet;
-      _soloud.filters.echoFilter.delay.value = _delay;
-      _soloud.filters.echoFilter.decay.value = _decay;
-
-      log.fine(
-          'Applied delay effect - Wet: $_wet, Delay: $_delay, Decay: $_decay');
-    } catch (e) {
-      log.severe('Failed to apply delay effect', e);
-    }
+    // Diese Klasse bereitet nur den State vor, die eigentliche Anwendung
+    // passiert im AudioEffectsController über SoLoud / AudioSource API.
+    log.info(
+      '✓ Delay state prepared: wet=$_wetLevel, delayTime=$_delayTime, decay=$_decay',
+    );
   }
-  /// Sets the delay time in milliseconds
-  void setDelay(double delay) {
-    _delay = delay.clamp(AudioConfig.minValue, AudioConfig.maxValue);
-    if (_soloud.filters.echoFilter.isActive) {
-      _soloud.filters.echoFilter.delay.value = _delay;
-    }
-  }
-  /// Sets the decay time in milliseconds
-  void setDecay(double decay) {
-    _decay = decay.clamp(AudioConfig.minValue, AudioConfig.maxValue);
-    if (_soloud.filters.echoFilter.isActive) {
-      _soloud.filters.echoFilter.decay.value = _decay;
-    }
-  }
-
-  @override
-  void setWetLevel(double wet) {
-    _wet = wet.clamp(AudioConfig.minValue, AudioConfig.maxValue);
-    if (_soloud.filters.echoFilter.isActive) {
-      _soloud.filters.echoFilter.wet.value = _wet;
-    }
-  }
-
-  @override
-  double getWetLevel() => _wet;
 
   @override
   void remove() {
-    if (_soloud.filters.echoFilter.isActive) {
-      _soloud.filters.echoFilter.deactivate();
-    }
+    // State zurücksetzen – der Controller entfernt den Filter an der Quelle
+    _wetLevel = AudioConfig.defaultEchoWet;
+    _delayTime = AudioConfig.defaultEchoDelayTime;
+    _decay = AudioConfig.defaultEchoDecay;
+    log.info('✓ Delay removed (state reset)');
   }
 
   @override
   void resetToDefault() {
-    _wet = AudioConfig.defaultEchoWet;
-    _delay = AudioConfig.defaultEchoDelay;
+    _wetLevel = AudioConfig.defaultEchoWet;
+    _delayTime = AudioConfig.defaultEchoDelayTime;
     _decay = AudioConfig.defaultEchoDecay;
-    apply();
   }
 
   @override
-  Map<String, double> getCurrentSettings() => {
-        'wet': _wet,
-        'delay': _delay,
-        'decay': _decay,
-      };
+  Map<String, double> getCurrentSettings() {
+    return {
+      'intensity': _wetLevel,
+      'delay': _delayTime,
+      'decay': _decay,
+    };
+  }
+
+  /// Sets the wet level of the effect (from WetDryMixin)
+  @override
+  void setWetLevel(double wet) {
+    _wetLevel = wet.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  }
+
+  /// Gets the current wet level of the effect (from WetDryMixin)
+  @override
+  double getWetLevel() => _wetLevel;
+
+  /// Sets the delay time in seconds
+  void setDelayTime(double delay) {
+    _delayTime = delay.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  }
+
+  /// Gets the current delay time
+  double getDelayTime() => _delayTime;
+
+  /// Sets the decay rate of the effect
+  void setDecay(double decay) {
+    _decay = decay.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  }
+
+  /// Gets the current decay rate
+  double getDecay() => _decay;
 }

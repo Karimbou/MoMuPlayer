@@ -1,115 +1,101 @@
+// lib/audio/biquad_effect.dart
 import 'package:logging/logging.dart';
-import 'package:flutter_soloud/flutter_soloud.dart';
-import 'dart:math' as math;
-import '../../audio/audio_config.dart';
-import 'audio_effect.dart';
+import '../controller/audio_effects_controller.dart';
+import 'audio_config.dart';
 
 /// {@category Audio}
 
-/// {@category Audio}
-
-/// A biquad filter effect implementation that provides frequency filtering capabilities.
-///
-/// This effect supports:
-/// - Wet/dry mix control
-/// - Frequency adjustment
-/// - Resonance control
-/// - Different filter types (lowpass, highpass, etc.)
-///
-/// Example usage:
-/// ```dart
-/// final effect = BiquadEffect(soloud);
-/// effect.setFrequency(1000);  // Set frequency to 1kHz
-/// effect.setWetLevel(0.5);    // Set mix to 50%
-/// effect.apply();             // Apply the effect
-/// ```
-class BiquadEffect with WetDryMixin, FrequencyMixin implements AudioEffect {
-  /// Creates a new BiquadEffect instance.
-  ///
-  /// Parameters:
-  /// - [_soloud]: The SoLoud audio engine instance to use for this effect.
-  ///
-  /// Throws a [StateError] if the audio engine is not initialized.
-  BiquadEffect(this._soloud);
+/// Biquad filter effect implementation with frequency, resonance, and type support
+class BiquadEffect implements AudioEffect, FrequencyMixin, TypeMixin {
+  /// Creates a biquad filter effect
+  BiquadEffect();
 
   @override
   final Logger log = Logger('BiquadEffect');
-  final SoLoud _soloud;
 
-  double _wet = AudioConfig.defaultBiquadWet;
-  double _normalizedFreq = AudioConfig.defaultBiquadFrequency;
+  /// Current wet level (0.0 - 1.0)
+  double _intensity = AudioConfig.defaultBiquadWet;
+
+  /// Current frequency in Hz (20.0 - 20000.0)
+  double _frequency = AudioConfig.defaultBiquadFrequency;
+
+  /// Current resonance/Q factor (0.0 - 1.0)
   double _resonance = AudioConfig.defaultBiquadResonance;
-  final double _type = AudioConfig.defaultBiquadType;
 
-  double get _frequency => (10.0 * math.pow(1600.0, _normalizedFreq))
-      .clamp(AudioConfig.minFrequencyHz, AudioConfig.maxFrequencyHz);
+  /// Current filter type (0=lowpass, 1=highpass, 2=bandpass, etc.)
+  int _type = AudioConfig.defaultBiquadFilterType;
 
   @override
   void apply() {
-    try {
-      if (!_soloud.isInitialized) {
-        log.warning('Cannot apply biquad - audio not initialized');
-        return;
-      }
-
-      final filter = _soloud.filters.biquadResonantFilter;
-      if (!filter.isActive) {
-        filter.activate();
-      }
-
-      filter.wet.value = _wet;
-      filter.frequency.value = _frequency;
-      filter.resonance.value = _resonance;
-      filter.type.value = _type;
-
-      log.fine('Applied biquad effect - Wet: $_wet, Freq: $_frequency Hz');
-    } catch (e) {
-      log.severe('Failed to apply biquad effect', e);
-    }
+    // Diese Klasse bereitet nur den State vor, die eigentliche Anwendung
+    // passiert im AudioEffectsController über SoLoud / AudioSource API.
+    log.info(
+      '✓ Biquad state prepared: intensity=$_intensity, frequency=$_frequency, resonance=$_resonance, type=$_type',
+    );
   }
-
-  @override
-  void setFrequency(double frequency) {
-    _normalizedFreq =
-        frequency.clamp(AudioConfig.minValue, AudioConfig.maxValue);
-    if (_soloud.filters.biquadResonantFilter.isActive) {
-      _soloud.filters.biquadResonantFilter.frequency.value = _frequency;
-    }
-  }
-
-  @override
-  double getFrequency() => _normalizedFreq;
-
-  @override
-  void setWetLevel(double wet) {
-    _wet = wet.clamp(AudioConfig.minValue, AudioConfig.maxValue);
-    if (_soloud.filters.biquadResonantFilter.isActive) {
-      _soloud.filters.biquadResonantFilter.wet.value = _wet;
-    }
-  }
-
-  @override
-  double getWetLevel() => _wet;
 
   @override
   void remove() {
-    if (_soloud.filters.biquadResonantFilter.isActive) {
-      _soloud.filters.biquadResonantFilter.deactivate();
-    }
+    // State zurücksetzen – der Controller entfernt den Filter an der Quelle
+    _intensity = AudioConfig.defaultBiquadWet;
+    _frequency = AudioConfig.defaultBiquadFrequency;
+    _resonance = AudioConfig.defaultBiquadResonance;
+    _type = AudioConfig.defaultBiquadFilterType;
+    log.info('✓ Biquad removed (state reset)');
   }
 
   @override
   void resetToDefault() {
-    _wet = AudioConfig.defaultBiquadWet;
-    _normalizedFreq = AudioConfig.defaultBiquadFrequency;
+    _intensity = AudioConfig.defaultBiquadWet;
+    _frequency = AudioConfig.defaultBiquadFrequency;
     _resonance = AudioConfig.defaultBiquadResonance;
-    apply();
+    _type = AudioConfig.defaultBiquadFilterType;
   }
 
   @override
-  Map<String, double> getCurrentSettings() => {
-        'wet': _wet,
-        'frequency': _normalizedFreq,
-        'resonance': _resonance,
-      };
+  Map<String, dynamic> getCurrentSettings() {
+    return {
+      'intensity': _intensity,
+      'frequency': _frequency,
+      'resonance': _resonance,
+      'type': _type,
+    };
+  }
+
+  /// Sets the wet level of the effect (intensity)
+  void setWetLevel(double wet) {
+    _intensity = wet.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  }
+
+  /// Gets the current wet level of the effect
+  double getWetLevel() => _intensity;
+
+  /// Sets the frequency (from FrequencyMixin)
+  @override
+  void setFrequency(double frequency) {
+    _frequency = frequency.clamp(20.0, 20000.0); // Audio range
+  }
+
+  /// Gets the current frequency (from FrequencyMixin)
+  @override
+  double getFrequency() => _frequency;
+
+  /// Sets the resonance/Q factor of the effect
+  void setResonance(double resonance) {
+    _resonance = resonance.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  }
+
+  /// Gets the current resonance of the effect
+  double getResonance() => _resonance;
+
+  /// Sets the filter type (from TypeMixin)
+  /// 0 = Lowpass, 1 = Highpass, 2 = Bandpass, etc.
+  @override
+  void setType(int type) {
+    _type = type;
+  }
+
+  /// Gets the current filter type (from TypeMixin)
+  @override
+  int getType() => _type;
 }

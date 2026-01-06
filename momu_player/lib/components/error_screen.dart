@@ -1,6 +1,11 @@
+// Copyright (c) 2024 Karim Bouhouchi. All rights reserved.
+
 import 'package:flutter/material.dart';
 import '../main.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import '../controller/audio_controller.dart';
+import '../controller/audio_effects_controller.dart';
+import '../controller/settings_controller.dart';
 
 /// A widget that displays an error screen when the application encounters
 /// a critical error, such as initialization failures or audio system errors.
@@ -14,35 +19,25 @@ class ErrorScreen extends StatelessWidget {
   ///
   /// The [key] parameter is optional and is used to identify this widget
   /// in the widget tree.
-  const ErrorScreen({super.key});
+  const ErrorScreen({
+    super.key,
+    required this.title,
+    required this.audioController,
+    this.audioEffectsController,
+    this.settingsController,
+  });
 
-  Future<void> _restartApp(BuildContext context) async {
-    try {
-      final audioController = AudioController();
-      await audioController.initialized;
+  /// Sets the title of the screen
+  final String title;
 
-      if (context.mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute<void>(
-            builder: (context) => MoMuPlayerApp(
-              audioController: audioController,
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      // If retry fails, show a snackbar
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to restart app. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+  /// Sets the audio controller instance
+  final AudioController audioController;
+
+  /// Optional audio effects controller
+  final AudioEffectsController? audioEffectsController;
+
+  /// Optional settings controller
+  final SettingsController? settingsController;
 
   @override
   Widget build(BuildContext context) {
@@ -52,19 +47,37 @@ class ErrorScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 60,
-            ),
+            const Icon(Icons.error_outline, color: Colors.red, size: 60),
             const SizedBox(height: 16),
-            const Text(
-              'Failed to initialize app',
-              style: TextStyle(color: Colors.white),
+            Text(
+              title,
+              style: const TextStyle(color: Colors.white, fontSize: 24),
             ),
             const SizedBox(height: 8),
             ElevatedButton(
-              onPressed: () => _restartApp(context),
+              onPressed: () {
+                // Create fallback controllers if not provided
+                final effectsController =
+                    audioEffectsController ??
+                    AudioEffectsController(audioController);
+
+                final settings =
+                    settingsController ??
+                    SettingsController(audioController, effectsController);
+
+                // Navigate back to main app
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (context) => MoMuPlayerApp(
+                      soLoud: SoLoud.instance,
+                      audioController: audioController,
+                      audioEffectsController: effectsController,
+                      settingsController: settings,
+                    ),
+                  ),
+                );
+              },
               child: const Text('Retry'),
             ),
           ],

@@ -1,11 +1,4 @@
-// Copyright (c) 2023 The Audio Project Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-/// Configuration constants for audio effects and digital signal processing.
-///
-/// This class contains static constants used throughout the audio processing
-/// pipeline for configuring various effects and audio parameters.
-///
+// lib/audio/audio_config.dart
 /// The constants are organized into several categories:
 /// * General audio configuration values
 /// * Delay effect parameters
@@ -32,14 +25,14 @@ class AudioConfig {
   static const double defaultEchoWet = 0.3;
 
   /// Default delay time in seconds for echo effect
-  static const double defaultEchoDelay = 0.2;
+  static const double defaultEchoDelayTime = 0.2;
 
   /// Default decay rate for echo repeats (0.0 - 1.0)
   static const double defaultEchoDecay = 0.3;
   
   // ------------------- Reverb Constants ------------------------
   /// Default wet/dry mix for reverb Wettness (0.0 - 1.0)
-  static const double defaultReverbWet = 0.3;
+  static const double defaultReverbWet = 0.5;
 
   /// Default room size parameter for reverb Room (0.0 - 1.0)
   static const double defaultReverbRoomSize = 0.5;
@@ -58,7 +51,8 @@ class AudioConfig {
   static const double defaultBiquadWet = 0.7;
 
   /// Default BiQuad filter type (lowpass)
-  static const double defaultBiquadType = 0.0;
+  static const int defaultBiquadFilterType = 0;
+  // ----------------- Biquad Type Valoues -------------------
 
   /// BiQuad lowpass filter type identifier
   static const int lowpassFilter = 0;
@@ -71,6 +65,8 @@ class AudioConfig {
 
   /// BiQuad notch filter type identifier
   static const int notchFilter = 3;
+
+  // ------------------ Biquad Filter Type Frequencies -------------------
 
   /// Minimum frequency in Hz for BiQuad filter
   static const double minFrequencyHz = 20.0;

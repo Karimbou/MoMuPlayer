@@ -7,8 +7,6 @@
 ///
 /// {@category Audio}
 library;
-
-export 'audio/audio_effect.dart';
 export 'audio/biquad_effect.dart';
 export 'audio/delay_effect.dart';
 export 'audio/load_assets.dart';

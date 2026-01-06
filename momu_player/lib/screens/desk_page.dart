@@ -1,3 +1,4 @@
+// lib/screens/desk_page.dart
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import '../audio/audio_config.dart';
@@ -5,38 +6,38 @@ import '../components/sound_key.dart';
 import '../constants.dart';
 import '../controller/audio_controller.dart';
 import '../controller/audio_effects_controller.dart';
+import '../controller/settings_controller.dart';
 import 'settings_page.dart';
 import '../components/slider_layout.dart';
-import '../components/segmentedbutton_layout.dart';
 
 /// {@category Screens}
 class DeskPage extends StatefulWidget {
-  /// Constructor for DeskPage widget
   const DeskPage({
     super.key,
     required this.title,
     required this.audioController,
+    required this.audioEffectsController,
+    required this.settingsController,
   });
-  /// Sets the title of the screen
+
   final String title;
-  /// Sets the audio controller instance
   final AudioController audioController;
+  final SettingsController settingsController;
+  final AudioEffectsController audioEffectsController;
 
   @override
   State<DeskPage> createState() => _DeskPageState();
 }
 
 class _DeskPageState extends State<DeskPage> {
-  static final Logger _log = Logger('DeskPage');
-  
-  // Use a single source of truth for wet value
-  double wetValue = AudioConfig.defaultWet ?? 0.5;
-  
-  // Simplified filter selection - only track which filters are active
-  Set<AudioEffectType> selectedEffects = {};
-  
-  // Sound key configurations for the desk page
-  static const List<List<SoundKeyConfig>> soundKeyConfigs = [
+  static final _logger = Logger('DeskPage');
+
+  DeskPageState _state = DeskPageState(
+    wetValue: AudioConfig.defaultWet ?? 0.5,
+    selectedEffects: {},
+  );
+
+  static const List<List<SoundKeyConfig>> _soundKeyConfigs = [
     [
       SoundKeyConfig(color: kTabColorGreen, soundPath: 'note_c'),
       SoundKeyConfig(color: kTabColorBlue, soundPath: 'note_d'),
@@ -55,184 +56,308 @@ class _DeskPageState extends State<DeskPage> {
     ],
   ];
 
+  static final Map<AudioEffectType, Map<String, dynamic>>
+  _effectConfigurations = {
+    AudioEffectType.reverb: {
+      'intensity': 0.0,
+      'roomSize': AudioConfig.defaultReverbRoomSize,
+      'damp': AudioConfig.defaultReverbDamp,
+    },
+    AudioEffectType.delay: {
+      'intensity': 0.0,
+      'delay': AudioConfig.defaultEchoDelayTime,
+      'decay': AudioConfig.defaultEchoDecay,
+    },
+    AudioEffectType.biquad: {
+      'intensity': 0.0,
+      'frequency': AudioConfig.defaultBiquadFrequency,
+      'resonance': 0.5,
+      'type': 0.0,
+    },
+  };
+
   @override
   void initState() {
     super.initState();
-      _log.info('DeskPage initState called');
-
-    _initializeEffects();
+    _logger.info('DeskPage initState called');
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initializeEffects());
   }
 
   Future<void> _initializeEffects() async {
-      _log.info('Initializing audio effects');
-    await widget.audioController.initialized;
-    if (!mounted) return;
+    _logger.info('Initializing audio effects');
 
-    final currentSettings = widget.audioController.getCurrentEffectSettings();
-      _log.info('Retrieved current effect settings: $currentSettings');
-
-    
-    // Convert settings to effect types for easier handling
-    final activeEffects = <AudioEffectType>{};
-    
-    if (currentSettings['reverb']?['wet'] != null) {
-      activeEffects.add(AudioEffectType.reverb);
-        _log.info('Reverb effect detected and added to active effects');
-
-    }
-    if (currentSettings['delay']?['wet'] != null) {
-      activeEffects.add(AudioEffectType.delay);
-        _log.info('Delay effect detected and added to active effects');
-
-    }
-    if (currentSettings['biquad']?['wet'] != null) {
-      activeEffects.add(AudioEffectType.biquad);
-        _log.info('Biquad effect detected and added to active effects');
-
-    }
-    
-    setState(() {
-      selectedEffects = activeEffects;
-        _log.info('Set initial selected effects: $selectedEffects');
-    });
-  }
-
-  void _handleFilterChange(Set<AudioEffectType> value) {
-    _log.info('Filter change requested: $value');
-
-    setState(() {
-      selectedEffects = value;
-      _applyFilter();
-    });
-  }
-
-  /// Apply the selected filters to audio
-  void _applyFilter() {
-      _log.info('Applying filters with wetValue: $wetValue');
     try {
-      // Deactivate all effects first
-      if (selectedEffects.contains(AudioEffectType.none)) {
-        // If "Clear All" is selected, deactivate all effects and return
-        widget.audioController.deactivateEffects();
-        _log.info('All effects deactivated via Clear All button');
-        return;
+      _logger.info('Loading instrument sounds...');
+
+      await Future.any([
+        widget.audioController.loadInstrumentSounds('wurli'),
+        Future<void>.delayed(const Duration(seconds: 5)),
+      ]);
+
+      _logger.info(
+        'Instrument sounds loaded, assets ready: ${widget.audioController.isAssetsReady}',
+      );
+
+      final currentSettings = widget.settingsController.getCurrentSettings();
+      final activeEffects = _parseActiveEffects(currentSettings);
+
+      if (mounted) {
+        setState(() {
+          _state = _state.copyWith(selectedEffects: activeEffects);
+        });
+
+
+        // Sie werden angewendet WENN ein Sound gespielt wird
+        _logger.info('Effects initialized (will apply when sounds are played)');
       }
-      
-      // Deactivate all effects first
-      widget.audioController.deactivateEffects();
-        _log.info('All effects deactivated');
-      // Apply selected effects
-      for (final effect in selectedEffects) {
-        if (effect != AudioEffectType.none) { // Skip the none effect
-          _applyEffect(effect);
-          _log.info('Applied effect: $effect');
-        }
-      }     
-      _log.info('Applied effects with global wet: $wetValue');
     } catch (e) {
-      _log.severe('Failed to apply effect', e);
+      _logger.severe('Initialization error', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to apply effect: ${e.toString()}')),
+          SnackBar(content: Text('Initialization error: ${e.toString()}')),
         );
       }
     }
   }
 
-  /// Apply a specific effect with appropriate parameters
-  void _applyEffect(AudioEffectType effectType) {
-      _log.info('Applying effect: $effectType');
-    switch (effectType) {
-      case AudioEffectType.reverb:
-        widget.audioController.applyEffect(
-          AudioEffectType.reverb,
-          {
-            'intensity': wetValue,
-            'roomSize': AudioConfig.defaultReverbRoomSize,
-            'damp': AudioConfig.defaultReverbDamp,
-            'wet': wetValue,
-          },
+  Set<AudioEffectType> _parseActiveEffects(Map<String, dynamic> settings) {
+    final activeEffects = <AudioEffectType>{};
+
+    void addEffectIfActive(String key) {
+      final effectSettings = settings[key];
+      if (effectSettings is Map<String, dynamic> &&
+          effectSettings['wet'] != null) {
+        activeEffects.add(_stringToEffectType(key)!);
+      }
+    }
+
+    addEffectIfActive('reverb');
+    addEffectIfActive('delay');
+    addEffectIfActive('biquad');
+
+    return activeEffects;
+  }
+
+  AudioEffectType? _stringToEffectType(String type) {
+    return AudioEffectType.values.firstWhere(
+      (e) => e.toString().split('.').last == type,
+      orElse: () => AudioEffectType.none,
+    );
+  }
+
+
+
+  void _applyFilters() {
+    try {
+      final effects = _state.selectedEffects;
+      _logger.info('Applying filters with wetValue: ${_state.wetValue}');
+
+      for (final effectType in effects) {
+        final config = _effectConfigurations[effectType] ?? {};
+
+        // Update intensity from slider
+        config['intensity'] = _state.wetValue;
+
+        // Pass the current audio source!
+        widget.audioEffectsController.applyEffect(
+          effectType,
+          config,
+          widget.audioController.currentAudioSource, // ← DIESE ZEILE!
         );
-          _log.info('Reverb effect applied with parameters: intensity=$wetValue, roomSize=${AudioConfig.defaultReverbRoomSize}, damp=${AudioConfig.defaultReverbDamp}');
-        break;
-      case AudioEffectType.delay:
-        widget.audioController.applyEffect(
-          AudioEffectType.delay,
-          {
-            'intensity': wetValue,
-            'delay': AudioConfig.defaultEchoDelay,
-            'decay': AudioConfig.defaultEchoDecay,
-            'wet': wetValue,
-          },
-        );
-        _log.info('Delay effect applied with parameters: intensity=$wetValue, delay=${AudioConfig.defaultEchoDelay}, decay=${AudioConfig.defaultEchoDecay}');
-        break;
-      case AudioEffectType.biquad:
-        widget.audioController.applyEffect(
-          AudioEffectType.biquad,
-          {
-            'intensity': wetValue,
-            'frequency': AudioConfig.defaultBiquadFrequency,
-            'resonance': 0.5,
-            'type': 0.0, // Lowpass filter
-            'wet': wetValue,
-          },
-        );
-        _log.info('Biquad effect applied with parameters: intensity=$wetValue, frequency=${AudioConfig.defaultBiquadFrequency}');        break;
-      case AudioEffectType.none:
-            _log.info('Clearing all effects');
-            widget.audioController.deactivateEffects();
-        break;
+      }
+    } catch (e) {
+      _logger.severe('Failed to apply filters', e);
     }
   }
 
-  /// Handle sound key press
-  void _handleSoundKeyPress(String? soundPath) {
-        _log.info('Sound key pressed: $soundPath');
-   if (soundPath == null) {
-      _log.warning('Sound path is null');
+  void _handleSoundKeyPress(String? soundPath) async {
+    if (soundPath == null) return;
+
+    try {
+      /// Play the sound file
+      await widget.audioController.playSound(soundPath);
+
+      /// Uses the effecs
+      final effects = _state.selectedEffects;
+      for (final effectType in effects) {
+        final effectConfig = _effectConfigurations[effectType] ?? {};
+
+        // Update intensity from slider
+        effectConfig['intensity'] = _state.wetValue;
+
+        // Apply effect mit der aktuellen AudioSource
+        widget.audioEffectsController.applyEffect(
+          effectType,
+          effectConfig,
+          widget
+              .audioController
+              .currentAudioSource, // ← Jetzt ist die Source da!
+        );
+      }
+    } catch (e) {
+      _logger.severe('Failed to handle sound key press', e);
+    }
+  }
+
+  Future <void> _onReverbButtonPressed() async {
+    _logger.info('Reverb button pressed');
+
+    final audioSource = widget.audioController.currentAudioSource;
+    if (audioSource == null) {
+      _logger.warning('No audio source available for effect');
       return;
     }
     try {
-      widget.audioController.playSound(soundPath);
-        _log.info('Sound played successfully: $soundPath');
+      widget.audioEffectsController.toggleEffect(
+        AudioEffectType.reverb,
+        audioSource, // ← Jetzt non-null
+        {
+          'intensity': _state.wetValue,
+          'roomSize': AudioConfig.defaultReverbRoomSize,
+          'damp': AudioConfig.defaultReverbDamp,
+        },
+      );
+      setState(() {});
     } catch (e) {
-      _log.severe('Failed to play sound: $soundPath', e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to play sound: ${e.toString()}')),
-        );
-      }
+      _logger.severe('Failed to toggle reverb effect', e);
     }
   }
 
-  /// Build sound key row
+  Future <void> _onDelayButtonPressed() async {
+    _logger.info('Delay button pressed');
+
+    final audioSource = widget.audioController.currentAudioSource;
+    if (audioSource == null) {
+      _logger.warning('No audio source available for effect');
+      return;
+    }
+
+    try {
+      widget.audioEffectsController.toggleEffect(
+        AudioEffectType.delay,
+        audioSource, // ← Jetzt non-null
+        {
+          'intensity': _state.wetValue,
+          'delay': AudioConfig.defaultEchoDelayTime,
+          'decay': AudioConfig.defaultEchoDecay,
+        },
+      );
+      setState(() {});
+    } catch (e) {
+      _logger.severe('Failed to toggle delay effect', e);
+    }
+  }
+
+  Future <void> _onBiquadButtonPressed() async {
+    _logger.info('Biquad button pressed');
+    final audioSource = widget.audioController.currentAudioSource;
+    if (audioSource == null) {
+      _logger.warning('No audio source available for effect');
+      return;
+    }
+    try {
+      widget.audioEffectsController
+          .toggleEffect(AudioEffectType.biquad, audioSource, {
+            'intensity': _state.wetValue,
+            'frequency': AudioConfig.defaultBiquadFrequency,
+            'resonance': 0.5,
+            'type': AudioConfig.defaultBiquadFilterType,
+          });
+      setState(() {});
+    } catch (e) {
+      _logger.severe('Failed to toggle biquad effect', e);
+    }
+  }
+
+  void _onClearButtonPressed() async {
+    _logger.info('Clear button pressed');
+     final audioSource = widget.audioController.currentAudioSource;
+    if (audioSource == null) {
+      _logger.warning('No audio source available for effect');
+      return;
+    }
+    try {
+      widget.audioEffectsController.clearAllEffects(
+        audioSource, // ← Jetzt non-null
+      );
+      setState(() {});
+    } catch (e) {
+      _logger.severe('Failed to clear all effects', e);
+    }
+  }
+
   Widget _buildSoundKeyRow(List<SoundKeyConfig> configs) {
-      _log.info('Building sound key row with ${configs.length} configs');
     return Expanded(
       child: Row(
-        children: configs
-            .map((config) => Expanded(
-                  child: SoundKey(
-                    onPress: () => _handleSoundKeyPress(config.soundPath),
-                    colour: config.color,
-                  ),
-                ))
-            .toList(),
+        children: configs.map((config) {
+          return Expanded(
+            child: SoundKey(
+              key: ValueKey(config.soundPath),
+              onPress: () => _handleSoundKeyPress(config.soundPath),
+              colour: config.color,
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
-  /// Build filter section
+  
+
   Widget _buildFilterSection() {
-        _log.info('Building filter section');
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 15.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildFilterButtons(),
+            // Create custom buttons with proper styling
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: _onReverbButtonPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        widget.audioEffectsController.isEffectEnabled(
+                          AudioEffectType.reverb,
+                        )
+                        ? Colors.blue
+                        : Colors.grey,
+                  ),
+                  child: const Text('Reverb'),
+                ),
+                ElevatedButton(
+                  onPressed: _onDelayButtonPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        widget.audioEffectsController.isEffectEnabled(
+                          AudioEffectType.delay,
+                        )
+                        ? Colors.blue
+                        : Colors.grey,
+                  ),
+                  child: const Text('Delay'),
+                ),
+                ElevatedButton(
+                  onPressed: _onBiquadButtonPressed,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        widget.audioEffectsController.isEffectEnabled(
+                          AudioEffectType.biquad,
+                        )
+                        ? Colors.blue
+                        : Colors.grey,
+                  ),
+                  child: const Text('Filter'),
+                ),
+                ElevatedButton(
+                  onPressed: _onClearButtonPressed,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: const Text('Clear'),
+                ),
+              ],
+            ),
             _buildEffectSlider(),
           ],
         ),
@@ -240,74 +365,31 @@ class _DeskPageState extends State<DeskPage> {
     );
   }
 
-  /// Build filter buttons
-  Widget _buildFilterButtons() {
-        _log.info('Building filter buttons with selected effects: $selectedEffects');
-
-    return SegmentedButtonTheme(
-      data: segmentedButtonLayout(context),
-      child: SegmentedButton<AudioEffectType>(
-        segments: const <ButtonSegment<AudioEffectType>>[
-          ButtonSegment<AudioEffectType>(
-            value: AudioEffectType.biquad,
-            label: Text('Filter'),
-            tooltip: 'Frequency Filter',
-          ),
-          ButtonSegment<AudioEffectType>(
-            value: AudioEffectType.reverb,
-            label: Text('Reverb'),
-            tooltip: 'Room Reverb Effect',
-          ),
-          ButtonSegment<AudioEffectType>(
-            value: AudioEffectType.delay,
-            label: Text('Delay'),
-            tooltip: 'Echo Delay Effect',
-          ),
-           ButtonSegment<AudioEffectType>(
-            value: AudioEffectType.none,
-            label: Text('Clear'),
-            tooltip: 'Deactivate all effects',
-          ),
-        ],
-        selected: selectedEffects,
-        onSelectionChanged: _handleFilterChange,
-        multiSelectionEnabled: true,
-        emptySelectionAllowed: true,
-      ),
-    );
-  }
-
-  /// Build effect slider
   Widget _buildEffectSlider() {
-        _log.info('Building effect slider with value: $wetValue');
     return SliderTheme(
       data: getCustomSliderTheme(context),
-      child: Column(
-        children: [
-          Slider(
-            value: wetValue,
-            min: AudioConfig.minValue,
-            max: AudioConfig.maxValue,
-            onChanged: (double newValue) {
-              setState(() {
-                wetValue = newValue;
-                _applyFilter();
-              });
-            },
-          ),
-        ],
+      child: Slider(
+        value: _state.wetValue,
+        min: AudioConfig.minValue,
+        max: AudioConfig.maxValue,
+        onChanged: (double newValue) {
+          setState(() {
+            _state = _state.copyWith(wetValue: newValue);
+          });
+          _applyFilters();
+        },
       ),
     );
   }
 
-  /// Navigate to settings page
   void _navigateToSettings() {
-      _log.info('Navigating to settings page');
     Navigator.push(
       context,
       MaterialPageRoute<void>(
         builder: (context) => SettingsPage(
           audioController: widget.audioController,
+          audioEffectsController: widget.audioEffectsController,
+          settingsController: widget.settingsController,
         ),
       ),
     );
@@ -315,7 +397,6 @@ class _DeskPageState extends State<DeskPage> {
 
   @override
   Widget build(BuildContext context) {
-      _log.info('Building DeskPage widget');
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -331,7 +412,7 @@ class _DeskPageState extends State<DeskPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            ...soundKeyConfigs.map(_buildSoundKeyRow),
+            ..._soundKeyConfigs.map(_buildSoundKeyRow),
             _buildFilterSection(),
           ],
         ),
@@ -341,12 +422,28 @@ class _DeskPageState extends State<DeskPage> {
 
   @override
   void dispose() {
-    _log.info('DeskPage dispose called');
     try {
-      widget.audioController.saveEffectState();
+      widget.audioEffectsController.saveEffectState();
     } catch (e) {
-      _log.warning('Failed to save effect state during disposal', e);
+      _logger.warning('Failed to save effect state during disposal', e);
     }
     super.dispose();
+  }
+}
+
+class DeskPageState {
+  DeskPageState({required this.wetValue, required this.selectedEffects});
+
+  final double wetValue;
+  final Set<AudioEffectType> selectedEffects;
+
+  DeskPageState copyWith({
+    double? wetValue,
+    Set<AudioEffectType>? selectedEffects,
+  }) {
+    return DeskPageState(
+      wetValue: wetValue ?? this.wetValue,
+      selectedEffects: selectedEffects ?? this.selectedEffects,
+    );
   }
 }

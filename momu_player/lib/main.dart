@@ -1,4 +1,4 @@
-// Copyright (c) 2024 Karim Bouhouchi. All rights reserved.
+// Copyright (c) 2025 Karim Bouchouchi. All rights reserved.
 
 library;
 
@@ -15,11 +15,14 @@ import 'dart:developer' as dev;
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import 'components/loading_screen.dart';
 import 'package:logging/logging.dart';
 import 'components/error_screen.dart';
 import 'screens/desk_page.dart';
 import 'controller/audio_controller.dart';
+import 'controller/audio_effects_controller.dart';
+import 'controller/settings_controller.dart';
 import 'constants.dart';
 
 /// Entry point of the application
@@ -46,23 +49,41 @@ void main() async {
   });
 
   try {
-    final audioController = AudioController();
-    await Future.any<void>([
-      audioController.initialized,
-      Future<void>.delayed(const Duration(seconds: 30)).then((_) {
-        throw TimeoutException('App initialization timed out');
-      }),
-    ]);
+    // Initialize audio controller first
+    final audioController = AudioController(SoLoud.instance);
+    await audioController.initialize();
+
+    // Initialize effects controller WITH SoLoud and audio controller reference
+    final audioEffectsController = AudioEffectsController(audioController);
+    await audioEffectsController.initialize();
+
+    final settingsController = SettingsController(
+      audioController,
+      audioEffectsController,
+    );
+    await settingsController.initialize();
 
     runApp(
-      MoMuPlayerApp(audioController: audioController),
+      MoMuPlayerApp(
+        soLoud: SoLoud.instance,
+        audioController: audioController,
+        audioEffectsController: audioEffectsController,
+        settingsController: settingsController,
+      ),
     );
   } catch (e, stackTrace) {
     final error = e is TimeoutException
         ? 'App failed to initialize (timeout)'
         : 'App failed to initialize: ${e.toString()}';
     Logger('main').severe(error, e, stackTrace);
-    runApp(const MaterialApp(home: ErrorScreen()));
+    runApp(
+      MaterialApp(
+        home: ErrorScreen(
+          title: 'Initialization Failed',
+          audioController: AudioController(SoLoud.instance),
+        ),
+      ),
+    );
   }
 }
 
@@ -73,10 +94,27 @@ void main() async {
 /// * Audio controller lifecycle
 /// * Navigation between main screens
 class MoMuPlayerApp extends StatefulWidget {
-  /// Constructor for MoMuPlayerApp, takes an Audio
-  const MoMuPlayerApp({required this.audioController, super.key});
-  /// Audiocontroller controlls the SoLoud Audio features
+  /// Constructor for MoMuPlayerApp
+  const MoMuPlayerApp({
+    required this.soLoud,
+    required this.audioController,
+    required this.audioEffectsController,
+    required this.settingsController,
+    super.key,
+  });
+
+  /// SoLoud instance for audio operations
+  final SoLoud soLoud;
+
+  /// Audiocontroller controls the SoLoud Audio features
   final AudioController audioController;
+
+  /// Controller for audio effects
+  final AudioEffectsController audioEffectsController;
+
+  /// Controller for application settings
+  final SettingsController settingsController;
+
   @override
   State<MoMuPlayerApp> createState() => _MoMuPlayerAppState();
 }
@@ -107,8 +145,8 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
   /// Waits for audio controller initialization and handles errors
   Future<void> _initializeApp() async {
     try {
-      await widget.audioController.initialized;
-
+      // The controllers are already initialized in main(), so we just need to
+      // ensure the UI is updated
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -119,7 +157,12 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute<void>(builder: (context) => const ErrorScreen()),
+          MaterialPageRoute<void>(
+            builder: (context) => ErrorScreen(
+              title: 'Initialization Failed',
+              audioController: widget.audioController,
+            ),
+          ),
         );
       }
     }
@@ -133,21 +176,22 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
           primaryColor: const Color(0xFF0A0E21),
           scaffoldBackgroundColor: const Color(0xFF0A0E21),
         ),
+
         /// Function to handle the loading screen from loading_screen.dart
         home: const LoadingScreen(),
       );
     }
     return MaterialApp(
       title: kAppName,
-      theme: ThemeData.dark(
-        useMaterial3: true,
-      ).copyWith(
+      theme: ThemeData.dark(useMaterial3: true).copyWith(
         primaryColor: const Color(0xFF0A0E21),
         scaffoldBackgroundColor: const Color(0xFF0A0E21),
       ),
       home: DeskPage(
         title: kAppName,
         audioController: widget.audioController,
+        audioEffectsController: widget.audioEffectsController,
+        settingsController: widget.settingsController,
       ),
     );
   }

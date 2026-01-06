@@ -3,12 +3,12 @@ import '../audio/audio_config.dart';
 import '../model/settings_model.dart';
 import '../components/segmentedbutton_layout.dart';
 import '../components/slider_layout.dart';
-import '../audio/biquad_filter_type.dart';
 
+/// {@category UI}
 /// This class contains all the widgets related to the settings section of the app. 
 /// It includes widgets for sliders, segmented buttons, and other settings-related widgets.
 class SettingsWidgets {
-
+  /// {@category UI}
   /// This method builds a slider widget with the given label and value. 
   /// It also provides a callback function to update the value when the slider is moved. 
   static Widget buildSliderSection(
@@ -40,15 +40,16 @@ class SettingsWidgets {
     );
   }
 
+  /// {@category UI}
   /// This method builds a segmented button widget for the BiQuad filter with the given labels and values. 
   static Widget buildBiQuadSettings(
     BuildContext context,
     double wetValue,
     double frequencyValue,
-    BiquadFilterType filterType,
+    int filterTypeIndex, // Using integer index instead of enum
     void Function(double) onWetChanged,
     void Function(double) onFrequencyChanged,
-    void Function(BiquadFilterType) onFilterTypeChanged,
+    void Function(int) onFilterTypeChanged,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,22 +61,45 @@ class SettingsWidgets {
         const SizedBox(height: 16),
         buildSliderSection(context, 'Filter Intensity', wetValue, onWetChanged),
         const SizedBox(height: 16),
-        buildSliderSection(
-            context, 'Frequency', frequencyValue, onFrequencyChanged),
+        buildSliderSection(context, 'Frequency', frequencyValue, onFrequencyChanged),
         const SizedBox(height: 16),
-        // Add filter type selector
-        DropdownButtonFormField<BiquadFilterType>(
-          initialValue: filterType,
+        // Add filter type selector using integer index
+        DropdownButtonFormField<int>(
+          initialValue: filterTypeIndex,
           decoration: const InputDecoration(
             labelText: 'Filter Type',
             border: OutlineInputBorder(),
           ),
-          items: BiquadFilterType.values.map((type) {
-            return DropdownMenuItem(
-              value: type,
-              child: Text(type.displayName),
-            );
-          }).toList(),
+          items: const [
+            DropdownMenuItem(
+              value: 0,
+              child: Text('Low Pass'),
+            ),
+            DropdownMenuItem(
+              value: 1,
+              child: Text('High Pass'),
+            ),
+            DropdownMenuItem(
+              value: 2,
+              child: Text('Band Pass'),
+            ),
+            DropdownMenuItem(
+              value: 3,
+              child: Text('Notch'),
+            ),
+            DropdownMenuItem(
+              value: 4,
+              child: Text('Peaking'),
+            ),
+            DropdownMenuItem(
+              value: 5,
+              child: Text('Low Shelf'),
+            ),
+            DropdownMenuItem(
+              value: 6,
+              child: Text('High Shelf'),
+            ),
+          ],
           onChanged: (value) {
             if (value != null) onFilterTypeChanged(value);
           },
@@ -84,6 +108,7 @@ class SettingsWidgets {
     );
   }
 
+  /// {@category UI}
   /// This Widget builds a section with a slider and an associated label for the Reverb Filter
   static Widget buildReverbSettings({
     required BuildContext context,
@@ -117,7 +142,8 @@ class SettingsWidgets {
     );
   }
 
-  /// This Widget builds a slider with the given properties and updates the value of the given value when the slider is changed.  
+  /// {@category UI}
+  /// This Widget builds a slider with the given properties and updates the value when the slider is changed.  
   static Widget buildDelaySettings(
     BuildContext context,
     double delayTime,
@@ -150,6 +176,7 @@ class SettingsWidgets {
     );
   }
 
+  /// {@category UI}
   /// This Widget builds a Column with Buttons to select the Sound Type and updates the selected sound when a button is pressed.  
   static Widget buildSoundSelection(
     BuildContext context,
