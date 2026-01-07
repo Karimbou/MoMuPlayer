@@ -161,7 +161,7 @@ class AudioEffectsController {
   /// Applies the specified effect with given parameters
   ///
   /// Required parameters by effect type:
-  /// - **Reverb**: 'intensity', 'roomSize', 'damp'
+  /// - **Reverb**: 'intensity', 'roomSize', 'damp', 'width'
   /// - **Delay**: 'intensity', 'delay', 'decay'
   /// - **Biquad**: 'intensity', 'frequency', 'resonance', 'type' (int or double)
   Future<void> applyEffect(
@@ -210,7 +210,7 @@ class AudioEffectsController {
     AudioSource audioSource,
   ) async {
     try {
-      log.fine('[AudioEffectsController] Deactivating ${type.name} filter. ..');
+      log.fine('[AudioEffectsController] Deactivating ${type.name} filter...');
 
       switch (type) {
         case AudioEffectType.reverb:
@@ -243,14 +243,15 @@ class AudioEffectsController {
   /// 1. Extract parameters from map (with defaults from AudioConfig)
   /// 2. Call activate() on the filter
   /// 3. Set parameters on the activated filter
-  /// 4. Filter is ready for audio processing
+  /// 4. Verify activation succeeded
+  /// 5. Filter is ready for audio processing
   Future<void> _applyFilterByType(
     AudioEffectType type,
     Map<String, dynamic> parameters,
     AudioSource audioSource,
   ) async {
     try {
-      log.fine('[AudioEffectsController] Activating ${type.name} filter. ..');
+      log.fine('[AudioEffectsController] Activating ${type.name} filter...');
 
       switch (type) {
         case AudioEffectType.reverb:
@@ -260,12 +261,20 @@ class AudioEffectsController {
             parameters['roomSize'] as double? ??
                 AudioConfig.defaultReverbRoomSize,
             parameters['damp'] as double? ?? AudioConfig.defaultReverbDamp,
+            parameters['width'] as double? ?? AudioConfig.defaultReverbWidth,
           );
+          
+          // Verify activation
+          if (!audioSource.filters.freeverbFilter.isActive) {
+            throw Exception('Failed to activate Reverb filter');
+          }
+          
           log.fine(
             '[AudioEffectsController] Reverb config: '
             'intensity=${parameters['intensity']}, '
             'roomSize=${parameters['roomSize']}, '
-            'damp=${parameters['damp']}',
+            'damp=${parameters['damp']}, '
+            'width=${parameters['width']}',
           );
           break;
 
@@ -276,6 +285,12 @@ class AudioEffectsController {
             parameters['delay'] as double? ?? AudioConfig.defaultEchoDelayTime,
             parameters['decay'] as double? ?? AudioConfig.defaultEchoDecay,
           );
+          
+          // Verify activation
+          if (!audioSource.filters.echoFilter.isActive) {
+            throw Exception('Failed to activate Delay filter');
+          }
+          
           log.fine(
             '[AudioEffectsController] Delay config: '
             'intensity=${parameters['intensity']}, '
@@ -298,6 +313,12 @@ class AudioEffectsController {
                 AudioConfig.defaultBiquadResonance,
             typeInt,
           );
+          
+          // Verify activation
+          if (!audioSource.filters.biquadFilter.isActive) {
+            throw Exception('Failed to activate Biquad filter');
+          }
+          
           log.fine(
             '[AudioEffectsController] Biquad config: '
             'intensity=${parameters['intensity']}, '
@@ -331,12 +352,28 @@ class AudioEffectsController {
     double intensity,
     double roomSize,
     double damp,
+    double width,
   ) {
+    // Validate parameters
+    if (intensity < 0.0 || intensity > 1.0) {
+      throw ArgumentError('Intensity must be 0.0-1.0, got $intensity');
+    }
+    if (roomSize < 0.0 || roomSize > 1.0) {
+      throw ArgumentError('Room size must be 0.0-1.0, got $roomSize');
+    }
+    if (damp < 0.0 || damp > 1.0) {
+      throw ArgumentError('Damp must be 0.0-1.0, got $damp');
+    }
+    if (width < 0.0 || width > 1.0) {
+      throw ArgumentError('Width must be 0.0-1.0, got $width');
+    }
+    
     audioSource.filters.freeverbFilter.activate();
     audioSource.filters.freeverbFilter.wet(soundHandle: null).value = intensity;
     audioSource.filters.freeverbFilter.roomSize(soundHandle: null).value =
         roomSize;
     audioSource.filters.freeverbFilter.damp(soundHandle: null).value = damp;
+    audioSource.filters.freeverbFilter.width(soundHandle: null).value = width;
   }
 
   /// Helper to configure and activate delay (echo) filter
@@ -346,6 +383,17 @@ class AudioEffectsController {
     double delay,
     double decay,
   ) {
+    // Validate parameters
+    if (intensity < 0.0 || intensity > 1.0) {
+      throw ArgumentError('Intensity must be 0.0-1.0, got $intensity');
+    }
+    if (delay < 0.0 || delay > 2.0) {
+      throw ArgumentError('Delay must be 0.0-2.0 seconds, got $delay');
+    }
+    if (decay < 0.0 || decay > 1.0) {
+      throw ArgumentError('Decay must be 0.0-1.0, got $decay');
+    }
+    
     audioSource.filters.echoFilter.activate();
     audioSource.filters.echoFilter.wet(soundHandle: null).value = intensity;
     audioSource.filters.echoFilter.delay(soundHandle: null).value = delay;
@@ -360,6 +408,26 @@ class AudioEffectsController {
     double resonance,
     int type,
   ) {
+    // Validate parameters
+    if (intensity < 0.0 || intensity > 1.0) {
+      throw ArgumentError('Intensity must be 0.0-1.0, got $intensity');
+    }
+    if (frequency < AudioConfig.minFrequencyHz || 
+        frequency > AudioConfig.maxFrequencyHz) {
+      throw ArgumentError(
+        'Frequency must be ${AudioConfig.minFrequencyHz}-${AudioConfig.maxFrequencyHz} Hz, got $frequency',
+      );
+    }
+    if (resonance < AudioConfig.minResonance || 
+        resonance > AudioConfig.maxResonance) {
+      throw ArgumentError(
+        'Resonance must be ${AudioConfig.minResonance}-${AudioConfig.maxResonance}, got $resonance',
+      );
+    }
+    if (type < 0 || type > 2) {
+      throw ArgumentError('Filter type must be 0-2, got $type');
+    }
+    
     audioSource.filters.biquadFilter.activate();
     audioSource.filters.biquadFilter.wet(soundHandle: null).value = intensity;
     audioSource.filters.biquadFilter.frequency(soundHandle: null).value =
@@ -406,8 +474,9 @@ class AudioEffectsController {
           final intensity = parameters['intensity'] as double?;
           final roomSize = parameters['roomSize'] as double?;
           final damp = parameters['damp'] as double?;
+          final width = parameters['width'] as double?;
 
-          /// Sets the level, room and damp to defaults
+          /// Sets the level, room, damp, and width to defaults
           final reverb = effect as ReverbEffect;
           reverb.setWetLevel(intensity ?? _currentWetness);
           reverb.setRoomSize(roomSize ?? AudioConfig.defaultReverbRoomSize);
@@ -418,6 +487,7 @@ class AudioEffectsController {
             reverb.getWetLevel(),
             reverb.getRoomSize(),
             reverb.getDamping(),
+            width ?? AudioConfig.defaultReverbWidth,
           );
 
           break;

@@ -16,8 +16,15 @@ class AudioController {
   
   /// Callback when assets finish loading
   void Function()? onAssetsLoaded;
+  
   /// Store the currently playing audio source for effects
   AudioSource? _currentAudioSource;
+  
+  /// Store active voice handles
+  final Map<String, SoundHandle> _activeVoices = {};
+  
+  /// Most recently played voice handle
+  SoundHandle? _lastVoiceHandle;
 
   /// Initializes the audio system
   Future<void> initialize() async {
@@ -62,31 +69,58 @@ class AudioController {
     }
   }
 
-  
-  /// Plays a sound by note
-  Future<void> playSound(String note) async {
+  /// Plays a sound by note and returns the voice handle
+  Future<SoundHandle?> playSound(String note) async {
     if (!_isInitialized) {
       _log.warning('Audio system not initialized, cannot play sound');
-      return;
+      return null;
     }
 
     try {
       final source = loadassets.getSoundSource(note);
       if (source != null) {
-        _currentAudioSource = source;  // ← DIESE ZEILE HINZUFÜGEN
-        await _soloud.play(source);
-        _log.fine('Played sound: $note');
+        _currentAudioSource = source;
+        
+        // Capture the voice handle from play()
+        final voiceHandle = await _soloud.play(source);
+        
+        // Store the voice handle
+        _activeVoices[note] = voiceHandle;
+        _lastVoiceHandle = voiceHandle;
+        
+        _log.fine('Played sound: $note (voice ID: ${voiceHandle.id})');
+        
+        // Schedule cleanup after a reasonable duration
+        // Most instrument sounds are short (< 5 seconds)
+        Future.delayed(const Duration(seconds: 5), () {
+          if (_activeVoices[note] == voiceHandle) {
+            _activeVoices.remove(note);
+            _log.fine('Voice cleanup: $note');
+          }
+        });
+        
+        return voiceHandle;
       } else {
         _log.warning('No sound source found for note: $note');
+        return null;
       }
     } catch (e) {
       _log.severe('Failed to play sound $note: $e');
+      return null;
     }
   }
 
   /// Gets the currently playing audio source
-  AudioSource? get currentAudioSource => _currentAudioSource;  // ← DIESE GETTER HINZUFÜGEN
-
+  AudioSource? get currentAudioSource => _currentAudioSource;
+  
+  /// Gets the most recently played voice handle
+  SoundHandle? get lastVoiceHandle => _lastVoiceHandle;
+  
+  /// Gets all active voice handles
+  Map<String, SoundHandle> get activeVoices => Map.unmodifiable(_activeVoices);
+  
+  /// Gets a specific voice handle by note
+  SoundHandle? getVoiceHandle(String note) => _activeVoices[note];
 
   /// Switches to a different instrument
   Future<void> switchInstrument(String instrumentType) async {
@@ -113,6 +147,11 @@ class AudioController {
   Future<void> dispose() async {
     if (_isInitialized) {
       try {
+        // Clear active voices
+        _activeVoices.clear();
+        _lastVoiceHandle = null;
+        _currentAudioSource = null;
+        
         _soloud.deinit();
         _isInitialized = false;
         _assetsReady = false;

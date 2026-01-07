@@ -63,6 +63,7 @@ class _DeskPageState extends State<DeskPage> {
       'intensity': AudioConfig.defaultWet,
       'roomSize': AudioConfig.defaultReverbRoomSize,
       'damp': AudioConfig.defaultReverbDamp,
+      'width': AudioConfig.defaultReverbWidth,
     },
     AudioEffectType.delay: {
       'intensity': AudioConfig.defaultWet,
@@ -88,7 +89,7 @@ class _DeskPageState extends State<DeskPage> {
     _logger.info('Initializing audio effects');
 
     try {
-      _logger.info('Loading instrument sounds. ..');
+      _logger.info('Loading instrument sounds...');
 
       await Future.any([
         widget.audioController.loadInstrumentSounds('wurli'),
@@ -172,7 +173,15 @@ class _DeskPageState extends State<DeskPage> {
     );
 
     try {
-      await widget.audioController.playSound(soundPath);
+      // Play sound and capture voice handle
+      final voiceHandle = await widget.audioController.playSound(soundPath);
+      
+      if (voiceHandle == null) {
+        _logger.warning('Failed to get voice handle for $soundPath');
+        return;
+      }
+
+      _logger.fine('Voice handle obtained: ${voiceHandle.id}');
 
       final effects = _state.selectedEffects;
       for (final effectType in effects) {
@@ -191,6 +200,11 @@ class _DeskPageState extends State<DeskPage> {
       }
     } catch (e) {
       _logger.severe('Failed to handle sound key press', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Playback error: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -214,6 +228,7 @@ class _DeskPageState extends State<DeskPage> {
             'intensity': _state.wetValue,
             'roomSize': AudioConfig.defaultReverbRoomSize,
             'damp': AudioConfig.defaultReverbDamp,
+            'width': AudioConfig.defaultReverbWidth,
           });
 
       if (!mounted) return;
@@ -233,6 +248,11 @@ class _DeskPageState extends State<DeskPage> {
       );
     } catch (e) {
       _logger.severe('Failed to toggle reverb effect', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Reverb error: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -275,6 +295,11 @@ class _DeskPageState extends State<DeskPage> {
       );
     } catch (e) {
       _logger.severe('Failed to toggle delay effect', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Delay error: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -318,6 +343,11 @@ class _DeskPageState extends State<DeskPage> {
       );
     } catch (e) {
       _logger.severe('Failed to toggle Biquad effect', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Filter error: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -346,6 +376,11 @@ class _DeskPageState extends State<DeskPage> {
       _logger.info('After clear: selectedEffects: ${_state.selectedEffects}');
     } catch (e) {
       _logger.severe('Failed to clear all effects', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Clear error: ${e.toString()}')),
+        );
+      }
     }
   }
 

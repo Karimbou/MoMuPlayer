@@ -43,19 +43,23 @@ class AudioConfig {
   /// Default room size parameter for reverb Damp (0.0 - 1.0)
   static const double defaultReverbDamp = 0.5;
 
+  /// Default width parameter for reverb stereo spread (0.0 - 1.0)
+  static const double defaultReverbWidth = 1.0;
+
   // ------------------- Biquad Filter Constants -------------------
-  /// Default center frequency for BiQuad filter, normalized 0.0 - 1.0
+  /// Default center frequency for BiQuad filter in Hz
   static const double defaultBiquadFrequency = 1000.0;
 
-  /// Default resonance/Q factor for BiQuad filter (0.0 - 1.0)
-  static const double defaultBiquadResonance = 0.5;
+  /// Default resonance/Q factor for BiQuad filter (1.0 - 10.0 for noticeable effect)
+  static const double defaultBiquadResonance = 2.0;
 
   /// Default wet/dry mix for BiQuad filter effect (0.0 - 1.0)
   static const double defaultBiquadWet = 0.7;
 
   /// Default BiQuad filter type (lowpass)
   static const int defaultBiquadFilterType = 0;
-  // ----------------- Biquad Type Valoues -------------------
+  
+  // ----------------- Biquad Type Values -------------------
 
   /// BiQuad lowpass filter type identifier
   static const int lowpassFilter = 0;
@@ -66,16 +70,22 @@ class AudioConfig {
   /// BiQuad bandpass filter type identifier
   static const int bandpassFilter = 2;
 
-  /// BiQuad notch filter type identifier
+  /// BiQuad notch filter type identifier (not supported in flutter_soloud)
   static const int notchFilter = 3;
 
-  // ------------------ Biquad Filter Type Frequencies -------------------
+  // ------------------ Biquad Filter Ranges -------------------
 
   /// Minimum frequency in Hz for BiQuad filter
   static const double minFrequencyHz = 20.0;
 
   /// Maximum frequency in Hz for BiQuad filter
   static const double maxFrequencyHz = 20000.0;
+
+  /// Minimum resonance/Q factor for BiQuad filter
+  static const double minResonance = 0.1;
+
+  /// Maximum resonance/Q factor for BiQuad filter
+  static const double maxResonance = 20.0;
 
   // ----------------- Default Instrument ------------------------
   /// Default instrument sound to use
