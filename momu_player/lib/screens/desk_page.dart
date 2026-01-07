@@ -429,9 +429,14 @@ class _DeskPageState extends State<DeskPage> {
         min: AudioConfig.minValue,
         max: AudioConfig.maxValue,
         onChanged: (double newValue) {
+          // Update the wetness value in the controller
+          widget.audioEffectsController.setWetness(newValue);
+          
           setState(() {
             _state = _state.copyWith(wetValue: newValue);
           });
+          
+          // Apply the updated wetness to all active effects
           _applyFilters();
         },
       ),

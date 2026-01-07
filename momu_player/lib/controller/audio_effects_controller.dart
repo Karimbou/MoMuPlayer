@@ -122,6 +122,9 @@ class AudioEffectsController {
     AudioEffectType.biquad: null,
   };
 
+  /// Current wetness value for all effects
+  double _currentWetness = AudioConfig.defaultWet;
+
   /// Initializes the EffectsController
   Future<void> initialize() async {
     _activeEffects.clear();
@@ -140,7 +143,19 @@ class AudioEffectsController {
     _effectIds[AudioEffectType.delay] = null;
     _effectIds[AudioEffectType.biquad] = null;
     
+    // Set default wetness
+    _currentWetness = AudioConfig.defaultWet;
+    
     log.info('[AudioEffectsController] Initialized');
+  }
+
+  /// Gets current wetness value
+  double get currentWetness => _currentWetness;
+
+  /// Sets the wetness value for all effects
+  void setWetness(double wetness) {
+    _currentWetness = wetness;
+    log.info('[AudioEffectsController] Wetness set to: $wetness');
   }
 
   /// Applies the specified effect with given parameters
@@ -227,7 +242,7 @@ class AudioEffectsController {
         case AudioEffectType.reverb:
           _configureReverbFilter(
             audioSource,
-            parameters['intensity'] as double? ?? AudioConfig.defaultReverbWet,
+            parameters['intensity'] as double? ?? _currentWetness,
             parameters['roomSize'] as double? ?? AudioConfig.defaultReverbRoomSize,
             parameters['damp'] as double? ?? AudioConfig.defaultReverbDamp,
           );
@@ -242,7 +257,7 @@ class AudioEffectsController {
         case AudioEffectType.delay:
           _configureDelayFilter(
             audioSource,
-            parameters['intensity'] as double? ?? AudioConfig.defaultEchoWet,
+            parameters['intensity'] as double? ?? _currentWetness,
             parameters['delay'] as double? ?? AudioConfig.defaultEchoDelayTime,
             parameters['decay'] as double? ?? AudioConfig.defaultEchoDecay,
           );
@@ -261,7 +276,7 @@ class AudioEffectsController {
           );
           _configureBiquadFilter(
             audioSource,
-            parameters['intensity'] as double? ?? AudioConfig.defaultBiquadWet,
+            parameters['intensity'] as double? ?? _currentWetness,
             parameters['frequency'] as double? ?? AudioConfig.defaultBiquadFrequency,
             parameters['resonance'] as double? ?? AudioConfig.defaultBiquadResonance,
             typeInt,
@@ -365,7 +380,7 @@ class AudioEffectsController {
 
           /// Sets the level, room and damp to defaults
           final reverb = effect as ReverbEffect;
-          reverb.setWetLevel(intensity ?? AudioConfig.defaultReverbWet);
+          reverb.setWetLevel(intensity ?? _currentWetness);
           reverb.setRoomSize(roomSize ?? AudioConfig.defaultReverbRoomSize);
           reverb.setDamp(damp ?? AudioConfig.defaultReverbDamp);
 
@@ -386,7 +401,7 @@ class AudioEffectsController {
 
           /// Sets the level, Delaytime and Decay to defaults
           final delay = effect as DelayEffect;
-          delay.setWetLevel(intensity ?? AudioConfig.defaultEchoWet);
+          delay.setWetLevel(intensity ?? _currentWetness);
           delay.setDelayTime(delayTime ?? AudioConfig.defaultEchoDelayTime);
           delay.setDecay(decay ?? AudioConfig.defaultEchoDecay);
 
@@ -409,7 +424,7 @@ class AudioEffectsController {
           );
 
           final biquad = effect as BiquadEffect;
-          biquad.setWetLevel(intensity ?? AudioConfig.defaultBiquadWet);
+          biquad.setWetLevel(intensity ?? _currentWetness);
           biquad.setFrequency(frequency ?? AudioConfig.defaultBiquadFrequency);
           biquad.setResonance(resonance ?? AudioConfig.defaultBiquadResonance);
           biquad.setType(type);
