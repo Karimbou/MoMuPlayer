@@ -71,11 +71,12 @@ mixin FrequencyMixin {
   double getFrequency();
 }
 
+/// Interface for effect types
 mixin TypeMixin {
-  /// Set the frequency
+  /// Set the type
   void setType(int type);
 
-  /// Get the current frequency
+  /// Get the current type
   int getType();
 }
 
@@ -109,10 +110,38 @@ class AudioEffectsController {
 
   /// Tracks Effect states (ON/OFF)
   final Map<AudioEffectType, bool> _effectStates = {
-    AudioEffectType.reverb: true, // default ON
+    AudioEffectType.reverb: false,
     AudioEffectType.delay: false,
     AudioEffectType.biquad: false,
   };
+
+  /// Effect IDs from SoLoud for cleanup
+  final Map<AudioEffectType, int?> _effectIds = {
+    AudioEffectType.reverb: null,
+    AudioEffectType.delay: null,
+    AudioEffectType.biquad: null,
+  };
+
+  /// Initializes the EffectsController
+  Future<void> initialize() async {
+    _activeEffects.clear();
+    _currentState.clear();
+    _deferredEffects.clear();
+    _effectStates.clear();
+    _effectIds.clear();
+    
+    // Set default states
+    _effectStates[AudioEffectType.reverb] = false;
+    _effectStates[AudioEffectType.delay] = false;
+    _effectStates[AudioEffectType.biquad] = false;
+    
+    // Set default effect IDs to null
+    _effectIds[AudioEffectType.reverb] = null;
+    _effectIds[AudioEffectType.delay] = null;
+    _effectIds[AudioEffectType.biquad] = null;
+    
+    log.info('[AudioEffectsController] Initialized');
+  }
 
   /// Applies the specified effect with given parameters
   /// 
@@ -156,7 +185,7 @@ class AudioEffectsController {
     AudioSource audioSource,
   ) async {
     try {
-      log.fine('[AudioEffectsController] Deactivating ${type.name} filter...');
+      log.fine('[AudioEffectsController] Deactivating ${type.name} filter. ..');
 
       switch (type) {
         case AudioEffectType.reverb:
@@ -192,13 +221,13 @@ class AudioEffectsController {
     AudioSource audioSource,
   ) async {
     try {
-      log.fine('[AudioEffectsController] Activating ${type.name} filter...');
+      log.fine('[AudioEffectsController] Activating ${type.name} filter. ..');
 
       switch (type) {
         case AudioEffectType.reverb:
           _configureReverbFilter(
             audioSource,
-            parameters['intensity'] as double? ?? 0.5,
+            parameters['intensity'] as double? ?? AudioConfig.defaultReverbWet,
             parameters['roomSize'] as double? ?? AudioConfig.defaultReverbRoomSize,
             parameters['damp'] as double? ?? AudioConfig.defaultReverbDamp,
           );
@@ -213,7 +242,7 @@ class AudioEffectsController {
         case AudioEffectType.delay:
           _configureDelayFilter(
             audioSource,
-            parameters['intensity'] as double? ?? 0.5,
+            parameters['intensity'] as double? ?? AudioConfig.defaultEchoWet,
             parameters['delay'] as double? ?? AudioConfig.defaultEchoDelayTime,
             parameters['decay'] as double? ?? AudioConfig.defaultEchoDecay,
           );
@@ -232,7 +261,7 @@ class AudioEffectsController {
           );
           _configureBiquadFilter(
             audioSource,
-            parameters['intensity'] as double? ?? 0.5,
+            parameters['intensity'] as double? ?? AudioConfig.defaultBiquadWet,
             parameters['frequency'] as double? ?? AudioConfig.defaultBiquadFrequency,
             parameters['resonance'] as double? ?? AudioConfig.defaultBiquadResonance,
             typeInt,
@@ -448,95 +477,88 @@ class AudioEffectsController {
     }
   }
 
-  /// Initializes the EffectsController
-  Future<void> initialize() async {
-    _activeEffects.clear();
-    _currentState.clear();
-    _deferredEffects.clear();
-    log.info('[AudioEffectsController] Initialized');
-  }
-
   /// Checks if a filter is currently active on the AudioSource
   bool isFilterActive(AudioEffectType effectType, AudioSource audioSource) {
     return _effectStates[effectType] ?? false;
   }
 
   /// Toggle an effect on/off
-  void toggleEffect(
+  Future<void> toggleEffect(
     AudioEffectType effectType,
     AudioSource audioSource,
     Map<String, dynamic> defaultParameters,
-  ) {
-    // Check internal state, not SoLoud API
-    if (_effectStates[effectType] == true) {
-      // Effect is ON → turn it OFF
-      _deactivateEffect(effectType, audioSource);
-    } else {
-      // Effect is OFF → turn it ON
-      _activateEffect(effectType, audioSource, defaultParameters);
+  ) async {
+    try {
+      // Check internal state, not SoLoud API
+      if (_effectStates[effectType] == true) {
+        // Effect is ON → turn it OFF
+        await _deactivateEffect(effectType, audioSource);
+      } else {
+        // Effect is OFF → turn it ON
+        await _activateEffect(effectType, audioSource, defaultParameters);
+      }
+    } catch (e) {
+      log.severe('[AudioEffectsController] ❌ Failed to toggle $effectType: $e');
+      rethrow;
     }
   }
 
   /// Activate a specific effect
-  void _activateEffect(
+  Future<void> _activateEffect(
     AudioEffectType effectType,
     AudioSource audioSource,
     Map<String, dynamic> parameters,
-  ) {
+  ) async {
     try {
       if (isFilterActive(effectType, audioSource)) {
         log.info('[AudioEffectsController] Filter already active: ${effectType.name}');
         return;
       }
 
-      _applyEffectInternal(effectType, parameters, audioSource);
+      // Use the new pipeline
+      await applyEffect(effectType, parameters, audioSource);
+      
+      // Update state
       _effectStates[effectType] = true;
+      
       log.info('[AudioEffectsController] ✓ Effect activated: ${effectType.name}');
     } catch (e) {
       log.severe('[AudioEffectsController] ❌ Failed to activate ${effectType.name} effect: $e');
+      _effectStates[effectType] = false;
+      rethrow;
     }
   }
 
-  /// Deactivate a specific effect
-  void _deactivateEffect(AudioEffectType effectType, AudioSource audioSource) {
+  Future<void> _deactivateEffect(
+    AudioEffectType effectType,
+    AudioSource audioSource,
+  ) async {
     try {
-      switch (effectType) {
-        case AudioEffectType.reverb:
-          audioSource.filters.freeverbFilter.deactivate();
-          break;
-        case AudioEffectType.delay:
-          audioSource.filters.echoFilter.deactivate();
-          break;
-        case AudioEffectType.biquad:
-          audioSource.filters.biquadFilter.deactivate();
-          break;
-        case AudioEffectType.none:
-          break;
-      }
+      await _deactivateFilterByType(effectType, audioSource);
 
-      if (_activeEffects.containsKey(effectType)) {
-        _activeEffects[effectType]!.remove();
-        _activeEffects.remove(effectType);
-      }
-
+      // Update state
       _effectStates[effectType] = false;
+      
       log.info('[AudioEffectsController] ✓ Effect deactivated: ${effectType.name}');
     } catch (e) {
       log.severe('[AudioEffectsController] ❌ Failed to deactivate ${effectType.name} effect: $e');
+      _effectStates[effectType] = true;
+      rethrow;
     }
   }
 
-  /// Clear all effects
-  void clearAllEffects(AudioSource audioSource) {
+  /// Clears all active effects from the audio source
+  Future<void> clearAllEffects(AudioSource audioSource) async {
     try {
       for (final effectType in AudioEffectType.values) {
         if (effectType != AudioEffectType.none) {
-          _deactivateEffect(effectType, audioSource);
+          await _deactivateEffect(effectType, audioSource);
         }
       }
       log.info('[AudioEffectsController] ✓ All effects cleared');
     } catch (e) {
       log.severe('[AudioEffectsController] ❌ Failed to clear all effects: $e');
+      rethrow;
     }
   }
 
@@ -611,5 +633,24 @@ class AudioEffectsController {
   /// Gets all currently active effects
   Set<AudioEffectType> getActiveEffects() {
     return _activeEffects.keys.toSet();
+  }
+
+  /// Dispose method to clean up effects
+  Future<void> dispose() async {
+    try {
+      // Deactivate all effects
+      for (final effectType in AudioEffectType.values) {
+        if (effectType != AudioEffectType.none) {
+          _effectStates[effectType] = false;
+        }
+      }
+      
+      // Clear effect IDs
+      _effectIds.clear();
+      
+      log.info('[AudioEffectsController] ✓ Effects disposed');
+    } catch (e) {
+      log.severe('[AudioEffectsController] ❌ Failed to dispose effects: $e');
+    }
   }
 }

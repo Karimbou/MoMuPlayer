@@ -11,6 +11,9 @@ class AudioConfig {
   /// The maximum allowed value for audio parameters
   static const double maxValue = 1.0;
 
+  /// The default value for the intensity / Wetness
+  static const double defaultWet = 0.5;
+
   /// Maximum time in seconds to wait for audio system initialization
   static const int initializationTimeoutSeconds = 30;
 
@@ -42,10 +45,10 @@ class AudioConfig {
 
   // ------------------- Biquad Filter Constants -------------------
   /// Default center frequency for BiQuad filter, normalized 0.0 - 1.0
-  static const double defaultBiquadFrequency = 0.5;
+  static const double defaultBiquadFrequency = 1000.0;
 
   /// Default resonance/Q factor for BiQuad filter (0.0 - 1.0)
-  static const double defaultBiquadResonance = 0.3;
+  static const double defaultBiquadResonance = 0.5;
 
   /// Default wet/dry mix for BiQuad filter effect (0.0 - 1.0)
   static const double defaultBiquadWet = 0.7;
@@ -77,6 +80,4 @@ class AudioConfig {
   // ----------------- Default Instrument ------------------------
   /// Default instrument sound to use
   static const String defaultInstrument = 'wurli';
-  /// Default effect Wetness 
-  static double? get defaultWet => null;
 }

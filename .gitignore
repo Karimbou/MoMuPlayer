@@ -1,4 +1,55 @@
+# macOS
+**/.DS_Store
 
-.DS_Store
-momu_player/macos/Runner/AppDelegate.swift
-.DS_Store
+# Logs & temporär
+*.log
+*.swp
+*.tmp
+.buildlog/
+.history
+# Flutter/Dart/Pub
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+**/doc/api/
+# Android
+**/android/.gradle/
+**/android/captures/
+**/android/**/gradle-wrapper.jar
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+# iOS / macOS Xcode
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.pbxuser
+**/ios/*.perspectivev3
+**/ios/**/xcuserdata/
+**/ios/.generated/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Pods/
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.atom/
+.svn/
+# Eigene Notizen / Tools
+.dev/
+soloud_debug_strategy_v2.md

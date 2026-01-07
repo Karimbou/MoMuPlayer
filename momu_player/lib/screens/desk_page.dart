@@ -1,6 +1,7 @@
 // lib/screens/desk_page.dart
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 import '../audio/audio_config.dart';
 import '../components/sound_key.dart';
 import '../constants.dart';
@@ -33,7 +34,7 @@ class _DeskPageState extends State<DeskPage> {
   static final _logger = Logger('DeskPage');
 
   DeskPageState _state = DeskPageState(
-    wetValue: AudioConfig.defaultWet ?? 0.5,
+    wetValue: AudioConfig.defaultWet,
     selectedEffects: {},
   );
 
@@ -59,20 +60,20 @@ class _DeskPageState extends State<DeskPage> {
   static final Map<AudioEffectType, Map<String, dynamic>>
   _effectConfigurations = {
     AudioEffectType.reverb: {
-      'intensity': 0.0,
+      'intensity': AudioConfig.defaultWet,
       'roomSize': AudioConfig.defaultReverbRoomSize,
       'damp': AudioConfig.defaultReverbDamp,
     },
     AudioEffectType.delay: {
-      'intensity': 0.0,
+      'intensity': AudioConfig.defaultWet,
       'delay': AudioConfig.defaultEchoDelayTime,
       'decay': AudioConfig.defaultEchoDecay,
     },
     AudioEffectType.biquad: {
-      'intensity': 0.0,
+      'intensity': AudioConfig.defaultWet,
       'frequency': AudioConfig.defaultBiquadFrequency,
-      'resonance': 0.5,
-      'type': 0.0,
+      'resonance': AudioConfig.defaultBiquadResonance,
+      'type': AudioConfig.defaultBiquadFilterType,
     },
   };
 
@@ -87,7 +88,7 @@ class _DeskPageState extends State<DeskPage> {
     _logger.info('Initializing audio effects');
 
     try {
-      _logger.info('Loading instrument sounds...');
+      _logger.info('Loading instrument sounds. ..');
 
       await Future.any([
         widget.audioController.loadInstrumentSounds('wurli'),
@@ -106,8 +107,6 @@ class _DeskPageState extends State<DeskPage> {
           _state = _state.copyWith(selectedEffects: activeEffects);
         });
 
-
-        // Sie werden angewendet WENN ein Sound gespielt wird
         _logger.info('Effects initialized (will apply when sounds are played)');
       }
     } catch (e) {
@@ -145,8 +144,6 @@ class _DeskPageState extends State<DeskPage> {
     );
   }
 
-
-
   void _applyFilters() {
     try {
       final effects = _state.selectedEffects;
@@ -154,15 +151,12 @@ class _DeskPageState extends State<DeskPage> {
 
       for (final effectType in effects) {
         final config = _effectConfigurations[effectType] ?? {};
-
-        // Update intensity from slider
         config['intensity'] = _state.wetValue;
 
-        // Pass the current audio source!
         widget.audioEffectsController.applyEffect(
           effectType,
           config,
-          widget.audioController.currentAudioSource, // ← DIESE ZEILE!
+          widget.audioController.currentAudioSource,
         );
       }
     } catch (e) {
@@ -173,25 +167,26 @@ class _DeskPageState extends State<DeskPage> {
   void _handleSoundKeyPress(String? soundPath) async {
     if (soundPath == null) return;
 
+    _logger.info(
+      'SoundKey pressed: $soundPath, active effects: ${_state.selectedEffects}',
+    );
+
     try {
-      /// Play the sound file
       await widget.audioController.playSound(soundPath);
 
-      /// Uses the effecs
       final effects = _state.selectedEffects;
       for (final effectType in effects) {
         final effectConfig = _effectConfigurations[effectType] ?? {};
-
-        // Update intensity from slider
         effectConfig['intensity'] = _state.wetValue;
 
-        // Apply effect mit der aktuellen AudioSource
-        widget.audioEffectsController.applyEffect(
+        _logger.info(
+          'Applying effect from SoundKey: ${effectType.name} with config $effectConfig',
+        );
+
+        await widget.audioEffectsController.applyEffect(
           effectType,
           effectConfig,
-          widget
-              .audioController
-              .currentAudioSource, // ← Jetzt ist die Source da!
+          widget.audioController.currentAudioSource,
         );
       }
     } catch (e) {
@@ -199,88 +194,152 @@ class _DeskPageState extends State<DeskPage> {
     }
   }
 
-  Future <void> _onReverbButtonPressed() async {
+  void _onReverbButtonPressed() {
     _logger.info('Reverb button pressed');
-
     final audioSource = widget.audioController.currentAudioSource;
     if (audioSource == null) {
       _logger.warning('No audio source available for effect');
       return;
     }
+    _toggleReverbEffect(audioSource);
+  }
+
+  Future<void> _toggleReverbEffect(AudioSource audioSource) async {
     try {
-      widget.audioEffectsController.toggleEffect(
+      final isEnabledBefore =
+          widget.audioEffectsController.isEffectEnabled(AudioEffectType.reverb);
+      await widget.audioEffectsController.toggleEffect(
         AudioEffectType.reverb,
-        audioSource, // ← Jetzt non-null
+        audioSource,
         {
           'intensity': _state.wetValue,
           'roomSize': AudioConfig.defaultReverbRoomSize,
           'damp': AudioConfig.defaultReverbDamp,
         },
       );
-      setState(() {});
+
+      if (!mounted) return;
+
+      setState(() {
+        final selected = Set<AudioEffectType>.from(_state.selectedEffects);
+        if (isEnabledBefore) {
+          selected.remove(AudioEffectType.reverb);
+        } else {
+          selected.add(AudioEffectType.reverb);
+        }
+        _state = _state.copyWith(selectedEffects: selected);
+      });
+
+      _logger.info('Reverb toggled. Now selectedEffects: ${_state.selectedEffects}');
     } catch (e) {
       _logger.severe('Failed to toggle reverb effect', e);
     }
   }
 
-  Future <void> _onDelayButtonPressed() async {
+  void _onDelayButtonPressed() {
     _logger.info('Delay button pressed');
-
     final audioSource = widget.audioController.currentAudioSource;
     if (audioSource == null) {
       _logger.warning('No audio source available for effect');
       return;
     }
+    _toggleDelayEffect(audioSource);
+  }
 
+  Future<void> _toggleDelayEffect(AudioSource audioSource) async {
     try {
-      widget.audioEffectsController.toggleEffect(
+      final isEnabledBefore =
+          widget.audioEffectsController.isEffectEnabled(AudioEffectType.delay);
+      await widget.audioEffectsController.toggleEffect(
         AudioEffectType.delay,
-        audioSource, // ← Jetzt non-null
+        audioSource,
         {
           'intensity': _state.wetValue,
           'delay': AudioConfig.defaultEchoDelayTime,
           'decay': AudioConfig.defaultEchoDecay,
         },
       );
-      setState(() {});
+
+      if (!mounted) return;
+
+      setState(() {
+        final selected = Set<AudioEffectType>.from(_state.selectedEffects);
+        if (isEnabledBefore) {
+          selected.remove(AudioEffectType.delay);
+        } else {
+          selected.add(AudioEffectType.delay);
+        }
+        _state = _state.copyWith(selectedEffects: selected);
+      });
+
+      _logger.info('Delay toggled. Now selectedEffects: ${_state.selectedEffects}');
     } catch (e) {
       _logger.severe('Failed to toggle delay effect', e);
     }
   }
 
-  Future <void> _onBiquadButtonPressed() async {
+  void _onBiquadButtonPressed() {
     _logger.info('Biquad button pressed');
     final audioSource = widget.audioController.currentAudioSource;
     if (audioSource == null) {
       _logger.warning('No audio source available for effect');
       return;
     }
+    _toggleBiquadEffect(audioSource);
+  }
+
+  Future<void> _toggleBiquadEffect(AudioSource audioSource) async {
     try {
-      widget.audioEffectsController
-          .toggleEffect(AudioEffectType.biquad, audioSource, {
-            'intensity': _state.wetValue,
-            'frequency': AudioConfig.defaultBiquadFrequency,
-            'resonance': 0.5,
-            'type': AudioConfig.defaultBiquadFilterType,
-          });
-      setState(() {});
+      final isEnabledBefore =
+          widget.audioEffectsController.isEffectEnabled(AudioEffectType.biquad);
+      await widget.audioEffectsController.toggleEffect(
+        AudioEffectType.biquad,
+        audioSource,
+        {
+          'intensity': _state.wetValue,
+          'frequency': AudioConfig.defaultBiquadFrequency,
+          'resonance': AudioConfig.defaultBiquadResonance,
+          'type': AudioConfig.defaultBiquadFilterType,
+        },
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        final selected = Set<AudioEffectType>.from(_state.selectedEffects);
+        if (isEnabledBefore) {
+          selected.remove(AudioEffectType.biquad);
+        } else {
+          selected.add(AudioEffectType.biquad);
+        }
+        _state = _state.copyWith(selectedEffects: selected);
+      });
+
+      _logger.info('Biquad Filter toggled. Now selectedEffects: ${_state.selectedEffects}');
     } catch (e) {
-      _logger.severe('Failed to toggle biquad effect', e);
+      _logger.severe('Failed to toggle Biquad effect', e);
     }
   }
 
-  void _onClearButtonPressed() async {
+  void _onClearButtonPressed() {
     _logger.info('Clear button pressed');
-     final audioSource = widget.audioController.currentAudioSource;
+    final audioSource = widget.audioController.currentAudioSource;
     if (audioSource == null) {
       _logger.warning('No audio source available for effect');
       return;
     }
+    _clearAllEffects(audioSource);
+  }
+
+  Future<void> _clearAllEffects(AudioSource audioSource) async {
     try {
-      widget.audioEffectsController.clearAllEffects(
-        audioSource, // ← Jetzt non-null
-      );
-      setState(() {});
+      _logger.info('Clear button pressed – clearing all effects');
+      await widget.audioEffectsController.clearAllEffects(audioSource);
+      if (!mounted) return;
+      setState(() {
+        _state = _state.copyWith(selectedEffects: <AudioEffectType>{});
+      });
+      _logger.info('After clear: selectedEffects: ${_state.selectedEffects}');
     } catch (e) {
       _logger.severe('Failed to clear all effects', e);
     }
@@ -302,8 +361,6 @@ class _DeskPageState extends State<DeskPage> {
     );
   }
 
-  
-
   Widget _buildFilterSection() {
     return Expanded(
       child: Padding(
@@ -311,7 +368,6 @@ class _DeskPageState extends State<DeskPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // Create custom buttons with proper styling
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

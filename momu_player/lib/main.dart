@@ -137,6 +137,7 @@ class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
   @override
   void dispose() {
     widget.audioController.dispose();
+    widget.audioEffectsController.dispose();
     super.dispose();
   }
 
