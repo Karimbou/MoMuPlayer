@@ -206,17 +206,15 @@ class _DeskPageState extends State<DeskPage> {
 
   Future<void> _toggleReverbEffect(AudioSource audioSource) async {
     try {
-      final isEnabledBefore =
-          widget.audioEffectsController.isEffectEnabled(AudioEffectType.reverb);
-      await widget.audioEffectsController.toggleEffect(
+      final isEnabledBefore = widget.audioEffectsController.isEffectEnabled(
         AudioEffectType.reverb,
-        audioSource,
-        {
-          'intensity': _state.wetValue,
-          'roomSize': AudioConfig.defaultReverbRoomSize,
-          'damp': AudioConfig.defaultReverbDamp,
-        },
       );
+      await widget.audioEffectsController
+          .toggleEffect(AudioEffectType.reverb, audioSource, {
+            'intensity': _state.wetValue,
+            'roomSize': AudioConfig.defaultReverbRoomSize,
+            'damp': AudioConfig.defaultReverbDamp,
+          });
 
       if (!mounted) return;
 
@@ -230,7 +228,9 @@ class _DeskPageState extends State<DeskPage> {
         _state = _state.copyWith(selectedEffects: selected);
       });
 
-      _logger.info('Reverb toggled. Now selectedEffects: ${_state.selectedEffects}');
+      _logger.info(
+        'Reverb toggled. Now selectedEffects: ${_state.selectedEffects}',
+      );
     } catch (e) {
       _logger.severe('Failed to toggle reverb effect', e);
     }
@@ -248,17 +248,15 @@ class _DeskPageState extends State<DeskPage> {
 
   Future<void> _toggleDelayEffect(AudioSource audioSource) async {
     try {
-      final isEnabledBefore =
-          widget.audioEffectsController.isEffectEnabled(AudioEffectType.delay);
-      await widget.audioEffectsController.toggleEffect(
+      final isEnabledBefore = widget.audioEffectsController.isEffectEnabled(
         AudioEffectType.delay,
-        audioSource,
-        {
-          'intensity': _state.wetValue,
-          'delay': AudioConfig.defaultEchoDelayTime,
-          'decay': AudioConfig.defaultEchoDecay,
-        },
       );
+      await widget.audioEffectsController
+          .toggleEffect(AudioEffectType.delay, audioSource, {
+            'intensity': _state.wetValue,
+            'delay': AudioConfig.defaultEchoDelayTime,
+            'decay': AudioConfig.defaultEchoDecay,
+          });
 
       if (!mounted) return;
 
@@ -272,7 +270,9 @@ class _DeskPageState extends State<DeskPage> {
         _state = _state.copyWith(selectedEffects: selected);
       });
 
-      _logger.info('Delay toggled. Now selectedEffects: ${_state.selectedEffects}');
+      _logger.info(
+        'Delay toggled. Now selectedEffects: ${_state.selectedEffects}',
+      );
     } catch (e) {
       _logger.severe('Failed to toggle delay effect', e);
     }
@@ -290,18 +290,16 @@ class _DeskPageState extends State<DeskPage> {
 
   Future<void> _toggleBiquadEffect(AudioSource audioSource) async {
     try {
-      final isEnabledBefore =
-          widget.audioEffectsController.isEffectEnabled(AudioEffectType.biquad);
-      await widget.audioEffectsController.toggleEffect(
+      final isEnabledBefore = widget.audioEffectsController.isEffectEnabled(
         AudioEffectType.biquad,
-        audioSource,
-        {
-          'intensity': _state.wetValue,
-          'frequency': AudioConfig.defaultBiquadFrequency,
-          'resonance': AudioConfig.defaultBiquadResonance,
-          'type': AudioConfig.defaultBiquadFilterType,
-        },
       );
+      await widget.audioEffectsController
+          .toggleEffect(AudioEffectType.biquad, audioSource, {
+            'intensity': _state.wetValue,
+            'frequency': AudioConfig.defaultBiquadFrequency,
+            'resonance': AudioConfig.defaultBiquadResonance,
+            'type': AudioConfig.defaultBiquadFilterType,
+          });
 
       if (!mounted) return;
 
@@ -315,7 +313,9 @@ class _DeskPageState extends State<DeskPage> {
         _state = _state.copyWith(selectedEffects: selected);
       });
 
-      _logger.info('Biquad Filter toggled. Now selectedEffects: ${_state.selectedEffects}');
+      _logger.info(
+        'Biquad Filter toggled. Now selectedEffects: ${_state.selectedEffects}',
+      );
     } catch (e) {
       _logger.severe('Failed to toggle Biquad effect', e);
     }
@@ -335,10 +335,14 @@ class _DeskPageState extends State<DeskPage> {
     try {
       _logger.info('Clear button pressed – clearing all effects');
       await widget.audioEffectsController.clearAllEffects(audioSource);
+
       if (!mounted) return;
+
       setState(() {
         _state = _state.copyWith(selectedEffects: <AudioEffectType>{});
+        _state = _state.copyWith(wetValue: AudioConfig.defaultWet);
       });
+
       _logger.info('After clear: selectedEffects: ${_state.selectedEffects}');
     } catch (e) {
       _logger.severe('Failed to clear all effects', e);
@@ -431,11 +435,11 @@ class _DeskPageState extends State<DeskPage> {
         onChanged: (double newValue) {
           // Update the wetness value in the controller
           widget.audioEffectsController.setWetness(newValue);
-          
+
           setState(() {
             _state = _state.copyWith(wetValue: newValue);
           });
-          
+
           // Apply the updated wetness to all active effects
           _applyFilters();
         },
