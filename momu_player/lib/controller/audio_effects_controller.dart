@@ -8,6 +8,32 @@ import '../audio/reverb_effect.dart';
 import 'audio_controller.dart';
 
 /// {@category Controllers}
+/// 
+/// /// # Filter Lifecycle in flutter_soloud
+///
+/// **Important:** flutter_soloud uses AudioSource-level filters,
+/// NOT per-voice effect IDs.
+///
+/// ## How Filters Work:
+/// 1. Each AudioSource (note_c, note_d, etc.) has separate filter instances
+/// 2. Filters are activated once per AudioSource: `audioSource.filters.freeverbFilter.activate()`
+/// 3. Per-voice parameters are set via soundHandle: `filter.wet(soundHandle: voice).value = 0.5`
+/// 4. Deactivating a filter affects ALL voices from that AudioSource
+///
+/// ## State Management:
+/// - `_effectStates`: Tracks which effects are conceptually "enabled" (UI state)
+/// - `audioSource.filters.*.isActive`: Actual SoLoud filter activation state
+/// - These can diverge when switching between AudioSources (different notes)
+///
+/// ## Effect Application Flow:
+/// ```
+/// User presses "note_c" key →
+/// playSound("note_c") → AudioSource for note_c →
+/// applyEffectsToVoice(voiceHandle, audioSource) →
+/// For each enabled effect:
+///   - Activate filter on audioSource (if not already active)
+///   - Set per-voice parameters via voiceHandle
+/// 
 
 /// Types of audio effects supported by the controller
 enum AudioEffectType {
@@ -91,15 +117,19 @@ int _parseIntValue(dynamic value, int defaultValue) {
 /// Controller for managing audio effects
 class AudioEffectsController {
   /// Create a new audio effects controller
-  AudioEffectsController(this._audioController) {
+  AudioEffectsController(this._audioController, this.settingsController) {
     // Listen for asset load completion
     _audioController.onAssetsLoaded = _onAssetsLoaded;
   }
-
+  /// Sets settings controller reference
+  final dynamic settingsController;
+  /// Sets the audio controller reference
   final AudioController _audioController;
+  /// Log Output naming the AudioEffectsController
   final Logger log = Logger('AudioEffectsController');
 
-  /// Currently active effects
+  /// Keep _activeEffects but clarify their purpose:
+  /// Stores effect parameter state (NOT SoLoud filter instances)
   final Map<AudioEffectType, AudioEffect> _activeEffects = {};
 
   /// Deferred effects (waiting for assets to load)
@@ -115,13 +145,6 @@ class AudioEffectsController {
     AudioEffectType.biquad: false,
   };
 
-  /// Effect IDs from SoLoud for cleanup
-  final Map<AudioEffectType, int?> _effectIds = {
-    AudioEffectType.reverb: null,
-    AudioEffectType.delay: null,
-    AudioEffectType.biquad: null,
-  };
-
   /// Current wetness value for all effects
   double _currentWetness = AudioConfig.defaultWet;
 
@@ -131,17 +154,11 @@ class AudioEffectsController {
     _currentState.clear();
     _deferredEffects.clear();
     _effectStates.clear();
-    _effectIds.clear();
 
     // Set default states
     _effectStates[AudioEffectType.reverb] = false;
     _effectStates[AudioEffectType.delay] = false;
     _effectStates[AudioEffectType.biquad] = false;
-
-    // Set default effect IDs to null
-    _effectIds[AudioEffectType.reverb] = null;
-    _effectIds[AudioEffectType.delay] = null;
-    _effectIds[AudioEffectType.biquad] = null;
 
     // Set default wetness
     _currentWetness = AudioConfig.defaultWet;
@@ -158,18 +175,29 @@ class AudioEffectsController {
     log.info('[AudioEffectsController] Wetness set to: $wetness');
   }
 
-  /// Applies all enabled effects to a specific voice handle
+  /// Order in which effects are applied (signal flow)
+  static const List<AudioEffectType> _effectApplicationOrder = [
+    AudioEffectType.biquad, // EQ/filtering first
+    AudioEffectType.delay, // Time-based effects second
+    AudioEffectType.reverb, // Reverb last (most natural)
+  ];
+
+  /// Applies all enabled effects to a specific voice handle IN CORRECT ORDER
   Future<void> applyEffectsToVoice(
     SoundHandle voiceHandle,
     AudioSource audioSource,
   ) async {
     try {
+      final enabledEffects = getEnabledEffects();
       log.info(
-        '[AudioEffectsController] Applying ${getEnabledEffects().length} effects to voice ${voiceHandle.id}',
+        '[AudioEffectsController] Applying ${enabledEffects.length} effects to voice ${voiceHandle.id}',
       );
 
-      for (final effectType in getEnabledEffects()) {
-        await _applyEffectToVoice(effectType, voiceHandle, audioSource);
+      // Apply in defined order, not arbitrary set order
+      for (final effectType in _effectApplicationOrder) {
+        if (enabledEffects.contains(effectType)) {
+          await _applyEffectToVoice(effectType, voiceHandle, audioSource);
+        }
       }
 
       log.info(
@@ -744,6 +772,14 @@ class AudioEffectsController {
         // Effect is OFF → turn it ON
         await _activateEffect(effectType, audioSource, defaultParameters);
       }
+       // Notify settings controller
+     // Notify settings controller of state change
+      if (settingsController != null) {
+        final effectName = effectType.name;
+        final isEnabled = _effectStates[effectType] ?? false;
+        // Use dynamic call to avoid circular import
+        settingsController.updateEffectState(effectName, isEnabled);
+      }
     } catch (e) {
       log.severe('[AudioEffectsController] ❌ Failed to toggle $effectType: $e');
       rethrow;
@@ -906,9 +942,6 @@ class AudioEffectsController {
           _effectStates[effectType] = false;
         }
       }
-
-      // Clear effect IDs
-      _effectIds.clear();
 
       log.info('[AudioEffectsController] ✓ Effects disposed');
     } catch (e) {

@@ -53,14 +53,20 @@ void main() async {
     final audioController = AudioController(SoLoud.instance);
     await audioController.initialize();
 
-    // Initialize effects controller WITH SoLoud and audio controller reference
-    final audioEffectsController = AudioEffectsController(audioController);
+    // Create settings controller (without effects controller initially)
+    final settingsController = SettingsController(audioController);
+
+    // Initialize effects controller WITH settings controller reference
+    final audioEffectsController = AudioEffectsController(
+      audioController,
+      settingsController,
+    );
     await audioEffectsController.initialize();
 
-    final settingsController = SettingsController(
-      audioController,
-      audioEffectsController,
-    );
+    // Set the effects controller in settings controller
+    settingsController.setAudioEffectsController(audioEffectsController);
+
+    // Initialize settings (loads saved state)
     await settingsController.initialize();
 
     runApp(

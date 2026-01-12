@@ -57,13 +57,22 @@ class ErrorScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // Create fallback controllers if not provided
-                final effectsController =
-                    audioEffectsController ??
-                    AudioEffectsController(audioController);
-
-                final settings =
-                    settingsController ??
-                    SettingsController(audioController, effectsController);
+                // Follow the same initialization pattern as main.dart
+                
+                // 1. Create settings controller first (without effects controller)
+                final settings = settingsController ?? 
+                    SettingsController(audioController);
+                
+                // 2. Create effects controller with settings controller reference
+                final effectsController = audioEffectsController ??
+                    AudioEffectsController(audioController, settings);
+                
+                // 3. Link them together if we created new ones
+                if (settingsController == null) {
+                  settings.setAudioEffectsController(effectsController);
+                  // Note: We're not awaiting initialize() here since this is synchronous
+                  // The controllers will initialize when the app starts
+                }
 
                 // Navigate back to main app
                 Navigator.pushReplacement(
