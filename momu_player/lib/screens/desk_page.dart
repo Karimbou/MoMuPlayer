@@ -166,47 +166,49 @@ class _DeskPageState extends State<DeskPage> {
   }
 
   void _handleSoundKeyPress(String? soundPath) async {
-    if (soundPath == null) return;
+  if (soundPath == null) return;
 
-    _logger.info(
-      'SoundKey pressed: $soundPath, active effects: ${_state.selectedEffects}',
-    );
+  _logger.info(
+    'SoundKey pressed: $soundPath, active effects: ${_state.selectedEffects}',
+  );
 
-    try {
-      // Play sound and capture voice handle
-      final voiceHandle = await widget.audioController.playSound(soundPath);
+  try {
+    // Play sound and capture voice handle
+    final voiceHandle = await widget.audioController.playSound(soundPath);
+    
+    if (voiceHandle == null) {
+      _logger.warning('Failed to get voice handle for $soundPath');
+      return;
+    }
+
+    final audioSource = widget.audioController.currentAudioSource;
+    if (audioSource == null) {
+      _logger.warning('No audio source available for $soundPath');
+      return;
+    }
+
+    _logger.fine('Voice handle obtained: ${voiceHandle.id}');
+
+    // Apply ALL enabled effects to THIS voice
+    if (_state.selectedEffects.isNotEmpty) {
+      _logger.info(
+        'Applying ${_state.selectedEffects.length} effects to voice ${voiceHandle.id}',
+      );
       
-      if (voiceHandle == null) {
-        _logger.warning('Failed to get voice handle for $soundPath');
-        return;
-      }
-
-      _logger.fine('Voice handle obtained: ${voiceHandle.id}');
-
-      final effects = _state.selectedEffects;
-      for (final effectType in effects) {
-        final effectConfig = _effectConfigurations[effectType] ?? {};
-        effectConfig['intensity'] = _state.wetValue;
-
-        _logger.info(
-          'Applying effect from SoundKey: ${effectType.name} with config $effectConfig',
-        );
-
-        await widget.audioEffectsController.applyEffect(
-          effectType,
-          effectConfig,
-          widget.audioController.currentAudioSource,
-        );
-      }
-    } catch (e) {
-      _logger.severe('Failed to handle sound key press', e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Playback error: ${e.toString()}')),
-        );
-      }
+      await widget.audioEffectsController.applyEffectsToVoice(
+        voiceHandle,
+        audioSource,
+      );
+    }
+  } catch (e) {
+    _logger.severe('Failed to handle sound key press', e);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Playback error: ${e.toString()}')),
+      );
     }
   }
+}
 
   void _onReverbButtonPressed() {
     _logger.info('Reverb button pressed');

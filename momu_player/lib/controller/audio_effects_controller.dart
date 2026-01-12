@@ -158,6 +158,130 @@ class AudioEffectsController {
     log.info('[AudioEffectsController] Wetness set to: $wetness');
   }
 
+  /// Applies all enabled effects to a specific voice handle
+  Future<void> applyEffectsToVoice(
+    SoundHandle voiceHandle,
+    AudioSource audioSource,
+  ) async {
+    try {
+      log.info(
+        '[AudioEffectsController] Applying ${getEnabledEffects().length} effects to voice ${voiceHandle.id}',
+      );
+
+      for (final effectType in getEnabledEffects()) {
+        await _applyEffectToVoice(effectType, voiceHandle, audioSource);
+      }
+
+      log.info(
+        '[AudioEffectsController] ✓ All effects applied to voice ${voiceHandle.id}',
+      );
+    } catch (e, st) {
+      log.severe(
+        '[AudioEffectsController] ❌ Failed to apply effects to voice ${voiceHandle.id}',
+        e,
+        st,
+      );
+    }
+  }
+
+  /// Internal method to apply a specific effect to a voice handle
+  Future<void> _applyEffectToVoice(
+    AudioEffectType type,
+    SoundHandle voiceHandle,
+    AudioSource audioSource,
+  ) async {
+    try {
+      log.fine(
+        '[AudioEffectsController] Applying ${type.name} to voice ${voiceHandle.id}',
+      );
+
+      switch (type) {
+        case AudioEffectType.reverb:
+          _configureReverbFilterForVoice(audioSource, voiceHandle);
+          break;
+        case AudioEffectType.delay:
+          _configureDelayFilterForVoice(audioSource, voiceHandle);
+          break;
+        case AudioEffectType.biquad:
+          _configureBiquadFilterForVoice(audioSource, voiceHandle);
+          break;
+        case AudioEffectType.none:
+          break;
+      }
+
+      log.fine(
+        '[AudioEffectsController] ✓ ${type.name} applied to voice ${voiceHandle.id}',
+      );
+    } catch (e, st) {
+      log.severe(
+        '[AudioEffectsController] ❌ Failed to apply ${type.name} to voice ${voiceHandle.id}',
+        e,
+        st,
+      );
+      rethrow;
+    }
+  }
+
+  /// Configure reverb for a specific voice
+  void _configureReverbFilterForVoice(
+    AudioSource audioSource,
+    SoundHandle voiceHandle,
+  ) {
+    if (!audioSource.filters.freeverbFilter.isActive) {
+      audioSource.filters.freeverbFilter.activate();
+    }
+
+    // Apply to THIS voice only
+    audioSource.filters.freeverbFilter.wet(soundHandle: voiceHandle).value =
+        _currentWetness;
+    audioSource.filters.freeverbFilter
+            .roomSize(soundHandle: voiceHandle)
+            .value =
+        AudioConfig.defaultReverbRoomSize;
+    audioSource.filters.freeverbFilter.damp(soundHandle: voiceHandle).value =
+        AudioConfig.defaultReverbDamp;
+    audioSource.filters.freeverbFilter.width(soundHandle: voiceHandle).value =
+        AudioConfig.defaultReverbWidth;
+  }
+
+  /// Configure delay for a specific voice
+  void _configureDelayFilterForVoice(
+    AudioSource audioSource,
+    SoundHandle voiceHandle,
+  ) {
+    if (!audioSource.filters.echoFilter.isActive) {
+      audioSource.filters.echoFilter.activate();
+    }
+
+    // Apply to THIS voice only
+    audioSource.filters.echoFilter.wet(soundHandle: voiceHandle).value =
+        _currentWetness;
+    audioSource.filters.echoFilter.delay(soundHandle: voiceHandle).value =
+        AudioConfig.defaultEchoDelayTime;
+    audioSource.filters.echoFilter.decay(soundHandle: voiceHandle).value =
+        AudioConfig.defaultEchoDecay;
+  }
+
+  /// Configure biquad for a specific voice
+  void _configureBiquadFilterForVoice(
+    AudioSource audioSource,
+    SoundHandle voiceHandle,
+  ) {
+    if (!audioSource.filters.biquadFilter.isActive) {
+      audioSource.filters.biquadFilter.activate();
+    }
+
+    // Apply to THIS voice only
+    audioSource.filters.biquadFilter.wet(soundHandle: voiceHandle).value =
+        _currentWetness;
+    audioSource.filters.biquadFilter.frequency(soundHandle: voiceHandle).value =
+        AudioConfig.defaultBiquadFrequency;
+    audioSource.filters.biquadFilter.resonance(soundHandle: voiceHandle).value =
+        AudioConfig.defaultBiquadResonance;
+    audioSource.filters.biquadFilter.type(soundHandle: voiceHandle).value =
+        AudioConfig.defaultBiquadFilterType.toDouble();
+  }
+
   /// Applies the specified effect with given parameters
   ///
   /// Required parameters by effect type:
@@ -263,12 +387,12 @@ class AudioEffectsController {
             parameters['damp'] as double? ?? AudioConfig.defaultReverbDamp,
             parameters['width'] as double? ?? AudioConfig.defaultReverbWidth,
           );
-          
+
           // Verify activation
           if (!audioSource.filters.freeverbFilter.isActive) {
             throw Exception('Failed to activate Reverb filter');
           }
-          
+
           log.fine(
             '[AudioEffectsController] Reverb config: '
             'intensity=${parameters['intensity']}, '
@@ -285,12 +409,12 @@ class AudioEffectsController {
             parameters['delay'] as double? ?? AudioConfig.defaultEchoDelayTime,
             parameters['decay'] as double? ?? AudioConfig.defaultEchoDecay,
           );
-          
+
           // Verify activation
           if (!audioSource.filters.echoFilter.isActive) {
             throw Exception('Failed to activate Delay filter');
           }
-          
+
           log.fine(
             '[AudioEffectsController] Delay config: '
             'intensity=${parameters['intensity']}, '
@@ -313,12 +437,12 @@ class AudioEffectsController {
                 AudioConfig.defaultBiquadResonance,
             typeInt,
           );
-          
+
           // Verify activation
           if (!audioSource.filters.biquadFilter.isActive) {
             throw Exception('Failed to activate Biquad filter');
           }
-          
+
           log.fine(
             '[AudioEffectsController] Biquad config: '
             'intensity=${parameters['intensity']}, '
@@ -367,7 +491,7 @@ class AudioEffectsController {
     if (width < 0.0 || width > 1.0) {
       throw ArgumentError('Width must be 0.0-1.0, got $width');
     }
-    
+
     audioSource.filters.freeverbFilter.activate();
     audioSource.filters.freeverbFilter.wet(soundHandle: null).value = intensity;
     audioSource.filters.freeverbFilter.roomSize(soundHandle: null).value =
@@ -393,7 +517,7 @@ class AudioEffectsController {
     if (decay < 0.0 || decay > 1.0) {
       throw ArgumentError('Decay must be 0.0-1.0, got $decay');
     }
-    
+
     audioSource.filters.echoFilter.activate();
     audioSource.filters.echoFilter.wet(soundHandle: null).value = intensity;
     audioSource.filters.echoFilter.delay(soundHandle: null).value = delay;
@@ -412,13 +536,13 @@ class AudioEffectsController {
     if (intensity < 0.0 || intensity > 1.0) {
       throw ArgumentError('Intensity must be 0.0-1.0, got $intensity');
     }
-    if (frequency < AudioConfig.minFrequencyHz || 
+    if (frequency < AudioConfig.minFrequencyHz ||
         frequency > AudioConfig.maxFrequencyHz) {
       throw ArgumentError(
         'Frequency must be ${AudioConfig.minFrequencyHz}-${AudioConfig.maxFrequencyHz} Hz, got $frequency',
       );
     }
-    if (resonance < AudioConfig.minResonance || 
+    if (resonance < AudioConfig.minResonance ||
         resonance > AudioConfig.maxResonance) {
       throw ArgumentError(
         'Resonance must be ${AudioConfig.minResonance}-${AudioConfig.maxResonance}, got $resonance',
@@ -427,7 +551,7 @@ class AudioEffectsController {
     if (type < 0 || type > 2) {
       throw ArgumentError('Filter type must be 0-2, got $type');
     }
-    
+
     audioSource.filters.biquadFilter.activate();
     audioSource.filters.biquadFilter.wet(soundHandle: null).value = intensity;
     audioSource.filters.biquadFilter.frequency(soundHandle: null).value =
