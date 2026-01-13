@@ -59,7 +59,6 @@ class _SettingsPageState extends State<SettingsPage> {
   double _reverbDamp = AudioConfig.defaultReverbDamp;
   double _delayTime = AudioConfig.defaultEchoDelayTime;
   double _delayDecay = AudioConfig.defaultEchoDecay;
-  double _delayWet = AudioConfig.defaultEchoWet;
   int _biquadFilterType = AudioConfig.defaultBiquadFilterType;
   double _biquadFrequency = AudioConfig.defaultBiquadFrequency;
   double _biquadWet = AudioConfig.defaultBiquadWet;
@@ -72,8 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadCurrentSettings();
   }
 
-  // Improved _loadCurrentSettings method
-  /// function to load settings properly from the controller and apply them to the UI.
+  /// Function to load settings properly from the controller and apply them to the UI.
   void _loadCurrentSettings() {
     try {
       _log.fine('[SettingsPage] Starting _loadCurrentSettings');
@@ -115,9 +113,6 @@ class _SettingsPageState extends State<SettingsPage> {
         _delayDecay =
             (delaySettings['decay'] as num?)?.toDouble() ??
             AudioConfig.defaultEchoDecay;
-        _delayWet =
-            (delaySettings['wet'] as num?)?.toDouble() ??
-            AudioConfig.defaultEchoWet;
 
         // Safely extract biquad settings - IMPORTANT: type must be int
         final biquadSettings =
@@ -169,7 +164,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _reverbDamp = AudioConfig.defaultReverbDamp;
       _delayTime = AudioConfig.defaultEchoDelayTime;
       _delayDecay = AudioConfig.defaultEchoDecay;
-      _delayWet = AudioConfig.defaultEchoWet;
       _biquadFrequency = AudioConfig.defaultBiquadFrequency;
       _biquadWet = AudioConfig.defaultBiquadWet;
       _biquadFilterType = AudioConfig.defaultBiquadFilterType;
@@ -205,6 +199,84 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  /// Updates reverb parameters directly on the active filter
+  Future<void> _updateReverbParameters() async {
+    final audioSource = widget.audioController.currentAudioSource;
+    if (audioSource == null) {
+      _log.warning('[SettingsPage] No audio source available');
+      return;
+    }
+
+    try {
+      // Only update if reverb is enabled
+      if (widget.audioEffectsController.isEffectEnabled(AudioEffectType.reverb)) {
+        // Update parameters on the filter (without soundHandle = applies to all voices)
+        audioSource.filters.freeverbFilter.roomSize(soundHandle: null).value = _reverbRoomSize;
+        audioSource.filters.freeverbFilter.damp(soundHandle: null).value = _reverbDamp;
+        
+        _log.fine('[SettingsPage] Updated reverb parameters: roomSize=$_reverbRoomSize, damp=$_reverbDamp');
+        
+        // Save to settings controller for persistence
+        _settingsController.updateEffectParameter('reverb', 'roomSize', _reverbRoomSize);
+        _settingsController.updateEffectParameter('reverb', 'damp', _reverbDamp);
+      }
+    } catch (e) {
+      _log.severe('[SettingsPage] Failed to update reverb parameters', e);
+    }
+  }
+
+  /// Updates delay parameters directly on the active filter
+  Future<void> _updateDelayParameters() async {
+    final audioSource = widget.audioController.currentAudioSource;
+    if (audioSource == null) {
+      _log.warning('[SettingsPage] No audio source available');
+      return;
+    }
+
+    try {
+      // Only update if delay is enabled
+      if (widget.audioEffectsController.isEffectEnabled(AudioEffectType.delay)) {
+        // Update parameters on the filter
+        audioSource.filters.echoFilter.delay(soundHandle: null).value = _delayTime;
+        audioSource.filters.echoFilter.decay(soundHandle: null).value = _delayDecay;
+        
+        _log.fine('[SettingsPage] Updated delay parameters: delay=$_delayTime, decay=$_delayDecay');
+        
+        // Save to settings controller
+        _settingsController.updateEffectParameter('delay', 'delay', _delayTime);
+        _settingsController.updateEffectParameter('delay', 'decay', _delayDecay);
+      }
+    } catch (e) {
+      _log.severe('[SettingsPage] Failed to update delay parameters', e);
+    }
+  }
+
+  /// Updates biquad parameters directly on the active filter
+  Future<void> _updateBiquadParameters() async {
+    final audioSource = widget.audioController.currentAudioSource;
+    if (audioSource == null) {
+      _log.warning('[SettingsPage] No audio source available');
+      return;
+    }
+
+    try {
+      // Only update if biquad is enabled
+      if (widget.audioEffectsController.isEffectEnabled(AudioEffectType.biquad)) {
+        // Update parameters on the filter
+        audioSource.filters.biquadFilter.frequency(soundHandle: null).value = _biquadFrequency;
+        audioSource.filters.biquadFilter.type(soundHandle: null).value = _biquadFilterType.toDouble();
+        
+        _log.fine('[SettingsPage] Updated biquad parameters: frequency=$_biquadFrequency, type=$_biquadFilterType');
+        
+        // Save to settings controller
+        _settingsController.updateEffectParameter('biquad', 'frequency', _biquadFrequency);
+        _settingsController.updateEffectParameter('biquad', 'type', _biquadFilterType);
+      }
+    } catch (e) {
+      _log.severe('[SettingsPage] Failed to update biquad parameters', e);
+    }
+  }
+
   Widget _buildAllSettings() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -220,28 +292,13 @@ class _SettingsPageState extends State<SettingsPage> {
               setState(() {
                 _reverbRoomSize = roomSizeValue;
               });
-              widget.audioEffectsController.applyEffect(
-                AudioEffectType.reverb,
-                {
-                  'intensity': 1.0, // Use current wet value or default
-                  'roomSize': roomSizeValue,
-                  'damp': _reverbDamp,
-                  'wet': 1.0, // Use current wet value or default
-                },
-                null,
-              );
+              _updateReverbParameters();
             },
             onDampChanged: (dampValue) {
               setState(() {
                 _reverbDamp = dampValue;
               });
-              widget.audioEffectsController
-                  .applyEffect(AudioEffectType.reverb, {
-                    'intensity': 1.0,
-                    'roomSize': _reverbRoomSize,
-                    'damp': dampValue,
-                    'wet': 1.0,
-                  }, null);
+              _updateReverbParameters();
             },
           ),
           const SizedBox(height: 32),
@@ -255,23 +312,13 @@ class _SettingsPageState extends State<SettingsPage> {
               setState(() {
                 _delayTime = value;
               });
-              widget.audioEffectsController.applyEffect(AudioEffectType.delay, {
-                'intensity': _delayWet,
-                'delay': value,
-                'decay': _delayDecay,
-                'wet': _delayWet,
-              }, null);
+              _updateDelayParameters();
             },
             (value) {
               setState(() {
                 _delayDecay = value;
               });
-              widget.audioEffectsController.applyEffect(AudioEffectType.delay, {
-                'intensity': _delayWet,
-                'delay': _delayTime,
-                'decay': value,
-                'wet': _delayWet,
-              }, null);
+              _updateDelayParameters();
             },
           ),
 
@@ -286,37 +333,20 @@ class _SettingsPageState extends State<SettingsPage> {
               setState(() {
                 _biquadWet = wetValue;
               });
-              widget.audioEffectsController
-                  .applyEffect(AudioEffectType.biquad, {
-                    'intensity': wetValue,
-                    'frequency': _biquadFrequency,
-                    'resonance': 0.5,
-                    'type': _biquadFilterType,
-                  }, null);
+              // Note: Wetness is controlled from desk_page, not here
+              _log.info('[SettingsPage] Biquad wet value changed to $wetValue (controlled from DeskPage)');
             },
             (freqValue) {
               setState(() {
                 _biquadFrequency = freqValue;
               });
-              widget.audioEffectsController
-                  .applyEffect(AudioEffectType.biquad, {
-                    'intensity': _biquadWet,
-                    'frequency': freqValue,
-                    'resonance': 0.5,
-                    'type': _biquadFilterType,
-                  }, null);
+              _updateBiquadParameters();
             },
             (filterType) {
               setState(() {
                 _biquadFilterType = filterType;
               });
-              widget.audioEffectsController
-                  .applyEffect(AudioEffectType.biquad, {
-                    'intensity': _biquadWet,
-                    'frequency': _biquadFrequency,
-                    'resonance': 0.5,
-                    'type': filterType,
-                  }, null);
+              _updateBiquadParameters();
             },
           ),
           const SizedBox(height: 32),
