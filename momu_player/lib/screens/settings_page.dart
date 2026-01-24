@@ -327,7 +327,9 @@ class _SettingsPageState extends State<SettingsPage> {
           SettingsWidgets.buildBiQuadSettings(
             context,
             _biquadWet,
-            _biquadFrequency,
+            // Normalize frequency from Hz (20-20000) to 0.0-1.0 range for slider
+            (_biquadFrequency - AudioConfig.minFrequencyHz) / 
+                (AudioConfig.maxFrequencyHz - AudioConfig.minFrequencyHz),
             _biquadFilterType.toInt(),
             (wetValue) {
               setState(() {
@@ -336,9 +338,13 @@ class _SettingsPageState extends State<SettingsPage> {
               // Note: Wetness is controlled from desk_page, not here
               _log.info('[SettingsPage] Biquad wet value changed to $wetValue (controlled from DeskPage)');
             },
-            (freqValue) {
+            (normalizedFreqValue) {
+              // Convert normalized value (0.0-1.0) back to Hz (20-20000)
+              final freqInHz = AudioConfig.minFrequencyHz + 
+                  (normalizedFreqValue * (AudioConfig.maxFrequencyHz - AudioConfig.minFrequencyHz));
+              
               setState(() {
-                _biquadFrequency = freqValue;
+                _biquadFrequency = freqInHz;
               });
               _updateBiquadParameters();
             },

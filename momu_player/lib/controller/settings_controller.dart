@@ -55,16 +55,20 @@ class SettingsController {
   static const String _prefsKey = 'momu_player_settings';
 
   /// Update a specific parameter for an effect
-  /// 
+  ///
   /// This method updates the in-memory parameter storage and triggers
   /// a save operation. It does NOT directly modify the audio filter -
   /// that should be done by the caller (settings_page.dart).
-  /// 
+  ///
   /// Example:
   /// ```dart
   /// settingsController.updateEffectParameter('reverb', 'roomSize', 0.7);
   /// ```
-  void updateEffectParameter(String effectType, String parameterName, dynamic value) {
+  void updateEffectParameter(
+    String effectType,
+    String parameterName,
+    dynamic value,
+  ) {
     try {
       _log.fine(
         '[SettingsController] Updating $effectType.$parameterName = $value',
@@ -72,9 +76,7 @@ class SettingsController {
 
       // Ensure effect type exists
       if (!_effectParameters.containsKey(effectType)) {
-        _log.warning(
-          '[SettingsController] Unknown effect type: $effectType',
-        );
+        _log.warning('[SettingsController] Unknown effect type: $effectType');
         return;
       }
 
@@ -104,7 +106,7 @@ class SettingsController {
   }
 
   /// Get a specific parameter value for an effect
-  /// 
+  ///
   /// Returns the parameter value or the provided default if not found.
   dynamic getEffectParameter(
     String effectType,
@@ -114,9 +116,7 @@ class SettingsController {
     try {
       final effectParams = _effectParameters[effectType];
       if (effectParams == null) {
-        _log.warning(
-          '[SettingsController] Effect type not found: $effectType',
-        );
+        _log.warning('[SettingsController] Effect type not found: $effectType');
         return defaultValue;
       }
 
@@ -131,15 +131,13 @@ class SettingsController {
   }
 
   /// Get all parameters for a specific effect
-  /// 
+  ///
   /// Returns a copy of the parameter map for the specified effect.
   Map<String, dynamic> getEffectParameters(String effectType) {
     try {
       final params = _effectParameters[effectType];
       if (params == null) {
-        _log.warning(
-          '[SettingsController] Effect type not found: $effectType',
-        );
+        _log.warning('[SettingsController] Effect type not found: $effectType');
         return {};
       }
 
@@ -227,9 +225,7 @@ class SettingsController {
     _log.info(
       '[SettingsController] Initialized with state: ${_settingsModel.effectState}',
     );
-    _log.info(
-      '[SettingsController] Loaded parameters: $_effectParameters',
-    );
+    _log.info('[SettingsController] Loaded parameters: $_effectParameters');
   }
 
   /// Update effect state and save immediately
@@ -254,13 +250,13 @@ class SettingsController {
   Future<void> saveSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Create a combined settings object
       final settingsData = {
         'effectState': _settingsModel.effectState,
         'effectParameters': _effectParameters,
       };
-      
+
       final json = jsonEncode(settingsData);
       await prefs.setString(_prefsKey, json);
       _log.fine('[SettingsController] Settings saved: $json');
@@ -278,18 +274,18 @@ class SettingsController {
 
       if (jsonString != null) {
         final json = jsonDecode(jsonString) as Map<String, dynamic>;
-        
+
         // Load effect state (enabled/disabled)
         if (json.containsKey('effectState')) {
-          _settingsModel = SettingsModel.fromJson(
-            {'effectState': json['effectState']},
-          );
+          _settingsModel = SettingsModel.fromJson({
+            'effectState': json['effectState'],
+          });
         }
-        
+
         // Load effect parameters
         if (json.containsKey('effectParameters')) {
           final loadedParams = json['effectParameters'] as Map<String, dynamic>;
-          
+
           // Merge loaded parameters with defaults
           for (final effectType in _effectParameters.keys) {
             if (loadedParams.containsKey(effectType)) {
@@ -298,7 +294,7 @@ class SettingsController {
             }
           }
         }
-        
+
         _log.info(
           '[SettingsController] Loaded settings - state: ${_settingsModel.effectState}, params: $_effectParameters',
         );
@@ -338,7 +334,7 @@ class SettingsController {
   /// Reset all effect parameters to defaults
   void resetAllParameters() {
     _log.info('[SettingsController] Resetting all parameters to defaults');
-    
+
     final defaults = _getDefaultSettings();
     _effectParameters.clear();
     for (final entry in defaults.entries) {
@@ -346,31 +342,54 @@ class SettingsController {
         entry.value as Map<String, dynamic>,
       );
     }
-    
+
     // Save to disk
     saveSettings()
         .then((_) {
           _log.info('[SettingsController] Parameters reset and saved');
         })
         .catchError((Object e) {
-          _log.severe('[SettingsController] Failed to save reset parameters', e);
+          _log.severe(
+            '[SettingsController] Failed to save reset parameters',
+            e,
+          );
+        });
+  }
+
+  /// Notify that all effects have been cleared
+  void notifyAllEffectsCleared() {
+    _log.info('[SettingsController] Clearing all effect states');
+    _settingsModel.effectState.clear();
+    saveSettings()
+        .then((_) {
+          _log.info('[SettingsController] All effect states cleared and saved');
+        })
+        .catchError((Object e) {
+          _log.severe(
+            '[SettingsController] Failed to save cleared effect states',
+            e,
+          );
         });
   }
 
   /// Reset parameters for a specific effect to defaults
   void resetEffectParameters(String effectType) {
-    _log.info('[SettingsController] Resetting $effectType parameters to defaults');
-    
+    _log.info(
+      '[SettingsController] Resetting $effectType parameters to defaults',
+    );
+
     final defaults = _getDefaultSettings();
     if (defaults.containsKey(effectType)) {
       _effectParameters[effectType] = Map<String, dynamic>.from(
         defaults[effectType] as Map<String, dynamic>,
       );
-      
+
       // Save to disk
       saveSettings()
           .then((_) {
-            _log.info('[SettingsController] $effectType parameters reset and saved');
+            _log.info(
+              '[SettingsController] $effectType parameters reset and saved',
+            );
           })
           .catchError((Object e) {
             _log.severe(

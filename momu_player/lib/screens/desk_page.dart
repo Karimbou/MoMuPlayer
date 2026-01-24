@@ -12,13 +12,13 @@ import 'settings_page.dart';
 import '../components/slider_layout.dart';
 
 /// Main screen for the MoMu Player application
-/// 
+///
 /// Displays a grid of sound keys for playing notes and controls
 /// for applying audio effects like reverb, delay, and filters.
 /// {@category Screens}
 class DeskPage extends StatefulWidget {
   /// Creates a new DeskPage
-  /// 
+  ///
   /// [title] - The title displayed in the app bar
   /// [audioController] - Controller for audio playback
   /// [audioEffectsController] - Controller for audio effects
@@ -33,13 +33,13 @@ class DeskPage extends StatefulWidget {
 
   /// The title displayed in the app bar
   final String title;
-  
+
   /// Controller for audio playback operations
   final AudioController audioController;
-  
+
   /// Controller for application settings
   final SettingsController settingsController;
-  
+
   /// Controller for audio effects management
   final AudioEffectsController audioEffectsController;
 
@@ -50,10 +50,8 @@ class DeskPage extends StatefulWidget {
 class _DeskPageState extends State<DeskPage> {
   static final _logger = Logger('DeskPage');
 
-  DeskPageState _state = DeskPageState(
-    wetValue: AudioConfig.defaultWet,
-    selectedEffects: {},
-  );
+  // Simplified state: only track wetness locally
+  double _wetValue = AudioConfig.defaultWet;
 
   static const List<List<SoundKeyConfig>> _soundKeyConfigs = [
     [
@@ -73,8 +71,6 @@ class _DeskPageState extends State<DeskPage> {
       SoundKeyConfig(color: kTabColorRed, soundPath: 'note_c_oc'),
     ],
   ];
-
-
 
   @override
   void initState() {
@@ -98,16 +94,10 @@ class _DeskPageState extends State<DeskPage> {
         'Instrument sounds loaded, assets ready: ${widget.audioController.isAssetsReady}',
       );
 
-      final currentSettings = widget.settingsController.getCurrentSettings();
-      final activeEffects = _parseActiveEffects(currentSettings);
-
-      if (mounted) {
-        setState(() {
-          _state = _state.copyWith(selectedEffects: activeEffects);
-        });
-
-        _logger.info('Effects initialized (will apply when sounds are played)');
-      }
+      // No need to parse/store active effects locally
+      // Controller already has this information
+      
+      _logger.info('Effects initialized (will apply when sounds are played)');
     } catch (e) {
       _logger.severe('Initialization error', e);
       if (mounted) {
@@ -118,49 +108,27 @@ class _DeskPageState extends State<DeskPage> {
     }
   }
 
-  Set<AudioEffectType> _parseActiveEffects(Map<String, dynamic> settings) {
-    final activeEffects = <AudioEffectType>{};
-
-    void addEffectIfActive(String key) {
-      final effectSettings = settings[key];
-      if (effectSettings is Map<String, dynamic> &&
-          effectSettings['wet'] != null) {
-        activeEffects.add(_stringToEffectType(key)!);
-      }
-    }
-
-    addEffectIfActive('reverb');
-    addEffectIfActive('delay');
-    addEffectIfActive('biquad');
-
-    return activeEffects;
-  }
-
-  AudioEffectType? _stringToEffectType(String type) {
-    return AudioEffectType.values.firstWhere(
-      (e) => e.toString().split('.').last == type,
-      orElse: () => AudioEffectType.none,
-    );
-  }
-
   /// Updates wetness for all currently enabled effects
-  /// 
+  ///
   /// This method updates the wetness parameter in the audio effects controller
   /// which will be applied to new voices as they play. It does NOT retroactively
   /// affect currently playing voices.
   void _applyFilters() {
     try {
-      final effects = _state.selectedEffects;
-      _logger.info('Updating wetness to: ${_state.wetValue} for ${effects.length} active effects');
+      // Read from controller, not local state
+      final activeEffects = widget.audioEffectsController.getEnabledEffects();
+      _logger.info(
+        'Updating wetness to: $_wetValue for ${activeEffects.length} active effects',
+      );
 
       // Simply update the wetness in the controller
       // The effects are already active on the AudioSource
       // New voices will get the updated wetness value
-      widget.audioEffectsController.setWetness(_state.wetValue);
+      widget.audioEffectsController.setWetness(_wetValue);
 
       // Log which effects will use the new wetness
-      if (effects.isNotEmpty) {
-        _logger.fine('Active effects that will use new wetness: $effects');
+      if (activeEffects.isNotEmpty) {
+        _logger.fine('Active effects that will use new wetness: $activeEffects');
       } else {
         _logger.fine('No active effects to update');
       }
@@ -172,14 +140,17 @@ class _DeskPageState extends State<DeskPage> {
   void _handleSoundKeyPress(String? soundPath) async {
     if (soundPath == null) return;
 
+    // Read from controller
+    final activeEffects = widget.audioEffectsController.getEnabledEffects();
+
     _logger.info(
-      'SoundKey pressed: $soundPath, active effects: ${_state.selectedEffects}',
+      'SoundKey pressed: $soundPath, active effects: $activeEffects',
     );
 
     try {
       // Play sound and capture voice handle
       final voiceHandle = await widget.audioController.playSound(soundPath);
-      
+
       if (voiceHandle == null) {
         _logger.warning('Failed to get voice handle for $soundPath');
         return;
@@ -194,14 +165,10 @@ class _DeskPageState extends State<DeskPage> {
       _logger.fine('Voice handle obtained: ${voiceHandle.id}');
 
       // Apply ALL enabled effects to THIS voice
-      if (_state.selectedEffects.isNotEmpty) {
+      if (activeEffects.isNotEmpty) {
         _logger.info(
-          'Applying ${_state.selectedEffects.length} effects to voice ${voiceHandle.id}',
+          'Applying ${activeEffects.length} effects to voice ${voiceHandle.id}',
         );
-        
-        // Add timing consideration - ensure effects are applied after a small delay
-        // This helps with timing consistency when multiple keys are pressed rapidly
-        await Future<void>.delayed(const Duration(milliseconds: 10));
 
         await widget.audioEffectsController.applyEffectsToVoice(
           voiceHandle,
@@ -230,12 +197,9 @@ class _DeskPageState extends State<DeskPage> {
 
   Future<void> _toggleReverbEffect(AudioSource audioSource) async {
     try {
-      final isEnabledBefore = widget.audioEffectsController.isEffectEnabled(
-        AudioEffectType.reverb,
-      );
       await widget.audioEffectsController
           .toggleEffect(AudioEffectType.reverb, audioSource, {
-            'intensity': _state.wetValue,
+            'intensity': _wetValue,
             'roomSize': AudioConfig.defaultReverbRoomSize,
             'damp': AudioConfig.defaultReverbDamp,
             'width': AudioConfig.defaultReverbWidth,
@@ -243,18 +207,11 @@ class _DeskPageState extends State<DeskPage> {
 
       if (!mounted) return;
 
-      setState(() {
-        final selected = Set<AudioEffectType>.from(_state.selectedEffects);
-        if (isEnabledBefore) {
-          selected.remove(AudioEffectType.reverb);
-        } else {
-          selected.add(AudioEffectType.reverb);
-        }
-        _state = _state.copyWith(selectedEffects: selected);
-      });
+      // Trigger UI rebuild to update button colors
+      setState(() {});
 
       _logger.info(
-        'Reverb toggled. Now selectedEffects: ${_state.selectedEffects}',
+        'Reverb toggled. Now effect states: ${widget.audioEffectsController.getEnabledEffects()}',
       );
     } catch (e) {
       _logger.severe('Failed to toggle reverb effect', e);
@@ -278,30 +235,20 @@ class _DeskPageState extends State<DeskPage> {
 
   Future<void> _toggleDelayEffect(AudioSource audioSource) async {
     try {
-      final isEnabledBefore = widget.audioEffectsController.isEffectEnabled(
-        AudioEffectType.delay,
-      );
       await widget.audioEffectsController
           .toggleEffect(AudioEffectType.delay, audioSource, {
-            'intensity': _state.wetValue,
+            'intensity': _wetValue,
             'delay': AudioConfig.defaultEchoDelayTime,
             'decay': AudioConfig.defaultEchoDecay,
           });
 
       if (!mounted) return;
 
-      setState(() {
-        final selected = Set<AudioEffectType>.from(_state.selectedEffects);
-        if (isEnabledBefore) {
-          selected.remove(AudioEffectType.delay);
-        } else {
-          selected.add(AudioEffectType.delay);
-        }
-        _state = _state.copyWith(selectedEffects: selected);
-      });
+      // Trigger UI rebuild to update button colors
+      setState(() {});
 
       _logger.info(
-        'Delay toggled. Now selectedEffects: ${_state.selectedEffects}',
+        'Delay toggled. Now effect states: ${widget.audioEffectsController.getEnabledEffects()}',
       );
     } catch (e) {
       _logger.severe('Failed to toggle delay effect', e);
@@ -325,12 +272,9 @@ class _DeskPageState extends State<DeskPage> {
 
   Future<void> _toggleBiquadEffect(AudioSource audioSource) async {
     try {
-      final isEnabledBefore = widget.audioEffectsController.isEffectEnabled(
-        AudioEffectType.biquad,
-      );
       await widget.audioEffectsController
           .toggleEffect(AudioEffectType.biquad, audioSource, {
-            'intensity': _state.wetValue,
+            'intensity': _wetValue,
             'frequency': AudioConfig.defaultBiquadFrequency,
             'resonance': AudioConfig.defaultBiquadResonance,
             'type': AudioConfig.defaultBiquadFilterType,
@@ -338,18 +282,11 @@ class _DeskPageState extends State<DeskPage> {
 
       if (!mounted) return;
 
-      setState(() {
-        final selected = Set<AudioEffectType>.from(_state.selectedEffects);
-        if (isEnabledBefore) {
-          selected.remove(AudioEffectType.biquad);
-        } else {
-          selected.add(AudioEffectType.biquad);
-        }
-        _state = _state.copyWith(selectedEffects: selected);
-      });
+      // Trigger UI rebuild to update button colors
+      setState(() {});
 
       _logger.info(
-        'Biquad Filter toggled. Now selectedEffects: ${_state.selectedEffects}',
+        'Biquad toggled. Now effect states: ${widget.audioEffectsController.getEnabledEffects()}',
       );
     } catch (e) {
       _logger.severe('Failed to toggle Biquad effect', e);
@@ -378,12 +315,14 @@ class _DeskPageState extends State<DeskPage> {
 
       if (!mounted) return;
 
+      // Only reset wetness, controller handles effect state
       setState(() {
-        _state = _state.copyWith(selectedEffects: <AudioEffectType>{});
-        _state = _state.copyWith(wetValue: AudioConfig.defaultWet);
+        _wetValue = AudioConfig.defaultWet;
       });
 
-      _logger.info('After clear: selectedEffects: ${_state.selectedEffects}');
+      _logger.info(
+        'After clear: effect states: ${widget.audioEffectsController.getEnabledEffects()}',
+      );
     } catch (e) {
       _logger.severe('Failed to clear all effects', e);
       if (mounted) {
@@ -474,7 +413,7 @@ class _DeskPageState extends State<DeskPage> {
     return SliderTheme(
       data: getCustomSliderTheme(context),
       child: Slider(
-        value: _state.wetValue,
+        value: _wetValue,
         min: AudioConfig.minValue,
         max: AudioConfig.maxValue,
         onChanged: (double newValue) {
@@ -482,7 +421,7 @@ class _DeskPageState extends State<DeskPage> {
           widget.audioEffectsController.setWetness(newValue);
 
           setState(() {
-            _state = _state.copyWith(wetValue: newValue);
+            _wetValue = newValue;
           });
 
           // Update wetness for all active effects
@@ -539,35 +478,5 @@ class _DeskPageState extends State<DeskPage> {
       _logger.warning('Failed to save effect state during disposal', e);
     }
     super.dispose();
-  }
-}
-
-/// Internal state for DeskPage
-/// 
-/// Holds the current wet/dry mix value and selected audio effects.
-class DeskPageState {
-  /// Creates a new DeskPageState
-  /// 
-  /// [wetValue] - Current wet/dry mix value (0.0-1.0)
-  /// [selectedEffects] - Set of currently enabled effects
-  DeskPageState({required this.wetValue, required this.selectedEffects});
-
-  /// Current wet/dry mix value for effects (0.0 = dry, 1.0 = wet)
-  final double wetValue;
-  
-  /// Set of currently enabled audio effects
-  final Set<AudioEffectType> selectedEffects;
-
-  /// Creates a copy of this state with optional new values
-  /// 
-  /// Returns a new DeskPageState with updated values
-  DeskPageState copyWith({
-    double? wetValue,
-    Set<AudioEffectType>? selectedEffects,
-  }) {
-    return DeskPageState(
-      wetValue: wetValue ?? this.wetValue,
-      selectedEffects: selectedEffects ?? this.selectedEffects,
-    );
   }
 }

@@ -11,7 +11,7 @@ import '../audio/audio_effect_error_handler.dart';
 import 'audio_controller.dart';
 
 /// {@category Controllers}
-/// 
+///
 /// # Refactored Audio Effects Controller
 ///
 /// **Architecture:**
@@ -110,17 +110,17 @@ class AudioEffectsController {
   AudioEffectsController(this._audioController, this.settingsController) {
     // Listen for asset load completion
     _audioController.onAssetsLoaded = _onAssetsLoaded;
-    
+
     // Initialize voice effect cache
     _voiceEffectCache = VoiceEffectCache();
   }
 
   /// Sets settings controller reference
   final dynamic settingsController;
-  
+
   /// Sets the audio controller reference
   final AudioController _audioController;
-  
+
   /// Log Output naming the AudioEffectsController
   final Logger log = Logger('AudioEffectsController');
 
@@ -129,7 +129,7 @@ class AudioEffectsController {
 
   /// Deferred effects (waiting for assets to load)
   final Map<AudioEffectType, Map<String, dynamic>> _deferredEffects = {};
-  
+
   /// Voice effect cache with automatic cleanup
   late VoiceEffectCache _voiceEffectCache;
 
@@ -209,7 +209,7 @@ class AudioEffectsController {
         log.fine(
           '[AudioEffectsController] Using cached effects for voice ${voiceHandle.id}',
         );
-        
+
         // Apply cached effects in correct order
         for (final effectType in _effectApplicationOrder) {
           if (cachedEffects.contains(effectType)) {
@@ -223,7 +223,7 @@ class AudioEffectsController {
             await _applyEffectToVoice(effectType, voiceHandle, audioSource);
           }
         }
-        
+
         // Cache the mapping
         if (enabledEffects.isNotEmpty) {
           _voiceEffectCache.add(
@@ -306,25 +306,41 @@ class AudioEffectsController {
     try {
       // Apply parameters using safe wrapper
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.freeverbFilter.wet(soundHandle: voiceHandle).value = _currentWetness,
+        () =>
+            audioSource.filters.freeverbFilter
+                    .wet(soundHandle: voiceHandle)
+                    .value =
+                _currentWetness,
         'wet',
         AudioEffectType.reverb,
       );
 
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.freeverbFilter.roomSize(soundHandle: voiceHandle).value = AudioConfig.defaultReverbRoomSize,
+        () =>
+            audioSource.filters.freeverbFilter
+                    .roomSize(soundHandle: voiceHandle)
+                    .value =
+                AudioConfig.defaultReverbRoomSize,
         'roomSize',
         AudioEffectType.reverb,
       );
 
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.freeverbFilter.damp(soundHandle: voiceHandle).value = AudioConfig.defaultReverbDamp,
+        () =>
+            audioSource.filters.freeverbFilter
+                    .damp(soundHandle: voiceHandle)
+                    .value =
+                AudioConfig.defaultReverbDamp,
         'damp',
         AudioEffectType.reverb,
       );
 
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.freeverbFilter.width(soundHandle: voiceHandle).value = AudioConfig.defaultReverbWidth,
+        () =>
+            audioSource.filters.freeverbFilter
+                    .width(soundHandle: voiceHandle)
+                    .value =
+                AudioConfig.defaultReverbWidth,
         'width',
         AudioEffectType.reverb,
       );
@@ -347,19 +363,29 @@ class AudioEffectsController {
   ) async {
     try {
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.echoFilter.wet(soundHandle: voiceHandle).value = _currentWetness,
+        () =>
+            audioSource.filters.echoFilter.wet(soundHandle: voiceHandle).value =
+                _currentWetness,
         'wet',
         AudioEffectType.delay,
       );
 
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.echoFilter.delay(soundHandle: voiceHandle).value = AudioConfig.defaultEchoDelayTime,
+        () =>
+            audioSource.filters.echoFilter
+                    .delay(soundHandle: voiceHandle)
+                    .value =
+                AudioConfig.defaultEchoDelayTime,
         'delay',
         AudioEffectType.delay,
       );
 
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.echoFilter.decay(soundHandle: voiceHandle).value = AudioConfig.defaultEchoDecay,
+        () =>
+            audioSource.filters.echoFilter
+                    .decay(soundHandle: voiceHandle)
+                    .value =
+                AudioConfig.defaultEchoDecay,
         'decay',
         AudioEffectType.delay,
       );
@@ -382,25 +408,41 @@ class AudioEffectsController {
   ) async {
     try {
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.biquadFilter.wet(soundHandle: voiceHandle).value = _currentWetness,
+        () =>
+            audioSource.filters.biquadFilter
+                    .wet(soundHandle: voiceHandle)
+                    .value =
+                _currentWetness,
         'wet',
         AudioEffectType.biquad,
       );
 
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.biquadFilter.frequency(soundHandle: voiceHandle).value = AudioConfig.defaultBiquadFrequency,
+        () =>
+            audioSource.filters.biquadFilter
+                    .frequency(soundHandle: voiceHandle)
+                    .value =
+                AudioConfig.defaultBiquadFrequency,
         'frequency',
         AudioEffectType.biquad,
       );
 
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.biquadFilter.resonance(soundHandle: voiceHandle).value = AudioConfig.defaultBiquadResonance,
+        () =>
+            audioSource.filters.biquadFilter
+                    .resonance(soundHandle: voiceHandle)
+                    .value =
+                AudioConfig.defaultBiquadResonance,
         'resonance',
         AudioEffectType.biquad,
       );
 
       AudioEffectErrorHandler.safeApplyParameter(
-        () => audioSource.filters.biquadFilter.type(soundHandle: voiceHandle).value = AudioConfig.defaultBiquadFilterType.toDouble(),
+        () =>
+            audioSource.filters.biquadFilter
+                .type(soundHandle: voiceHandle)
+                .value = AudioConfig.defaultBiquadFilterType
+                .toDouble(),
         'type',
         AudioEffectType.biquad,
       );
@@ -431,9 +473,7 @@ class AudioEffectsController {
       );
 
       if (success) {
-        log.fine(
-          '[AudioEffectsController] ✓ ${type.name} filter deactivated',
-        );
+        log.fine('[AudioEffectsController] ✓ ${type.name} filter deactivated');
       } else {
         log.warning(
           '[AudioEffectsController] ⚠️ ${type.name} filter deactivation incomplete',
@@ -451,39 +491,48 @@ class AudioEffectsController {
     try {
       log.info('[AudioEffectsController] Clearing all effects...');
 
-      // Step 1: Mark all effects as disabled
+      // Step 1: Immediately disable all effects in state
       for (final type in AudioEffectType.values) {
         if (type != AudioEffectType.none) {
           _effectStates[type] = false;
         }
       }
 
-      // Step 2: Wait for pending operations
-      await Future<void>.delayed(const Duration(milliseconds: 150));
-
-      // Step 3: Deactivate all filters safely
-      final results = await AudioEffectErrorHandler.safeDeactivateAllFilters(
-        audioSource,
-      );
-
-        // Log results
-      for (final entry in results.entries) {
-        if (entry.value) {
-          log.fine('[AudioEffectsController] ✓ ${entry.key.name} deactivated');
-        } else {
-          log.warning('[AudioEffectsController] ⚠️ ${entry.key.name} deactivation failed');
-        }
+      // Step 2: Zero out all wet levels BEFORE deactivating
+      try {
+        audioSource.filters.freeverbFilter.wet(soundHandle: null).value = 0.0;
+        audioSource.filters.echoFilter.wet(soundHandle: null).value = 0.0;
+        audioSource.filters.biquadFilter.wet(soundHandle: null).value = 0.0;
+        log.fine('[AudioEffectsController] ✓ All wet levels zeroed');
+      } catch (e) {
+        log.warning('[AudioEffectsController] ⚠️ Error zeroing wet levels: $e');
       }
 
-      // Step 4: Clear voice effect cache
-      _voiceEffectCache.clear();
+      // Step 3: Wait for zeroing to take effect
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      // Step 5: Reset wetness to default
+      // Step 4: Deactivate all filters
+      try {
+        audioSource.filters.freeverbFilter.deactivate();
+        audioSource.filters.echoFilter.deactivate();
+        audioSource.filters.biquadFilter.deactivate();
+        log.fine('[AudioEffectsController] ✓ All filters deactivated');
+      } catch (e) {
+        log.warning('[AudioEffectsController] ⚠️ Error deactivating filters: $e');
+      }
+
+      // Step 5: Clear cache and state
+      _voiceEffectCache.clear();
       _currentWetness = AudioConfig.defaultWet;
+
+      // Step 6: Notify settings controller
+      if (settingsController != null) {
+        settingsController.notifyAllEffectsCleared();
+      }
 
       log.info('[AudioEffectsController] ✓ All effects cleared and reset');
     } catch (e, st) {
-      log.severe('[AudioEffectsController] ❌ Failed to clear all effects', e, st);
+      log.severe('[AudioEffectsController] ❌ Failed to clear effects', e, st);
       rethrow;
     }
   }
@@ -503,7 +552,7 @@ class AudioEffectsController {
 
       // Check internal state
       final isCurrentlyEnabled = _effectStates[effectType] ?? false;
-      
+
       if (isCurrentlyEnabled) {
         // Effect is ON → turn it OFF
         log.info('[AudioEffectsController] Toggling ${effectType.name} OFF');
@@ -525,7 +574,11 @@ class AudioEffectsController {
         '[AudioEffectsController] ✓ ${effectType.name} toggled to ${_effectStates[effectType]}',
       );
     } catch (e, st) {
-      log.severe('[AudioEffectsController] ❌ Failed to toggle $effectType', e, st);
+      log.severe(
+        '[AudioEffectsController] ❌ Failed to toggle $effectType',
+        e,
+        st,
+      );
       rethrow;
     }
   }
@@ -537,7 +590,6 @@ class AudioEffectsController {
     Map<String, dynamic> parameters,
   ) async {
     try {
-      // Check if already active
       if (_effectStates[effectType] == true) {
         log.info(
           '[AudioEffectsController] Effect already active: ${effectType.name}',
@@ -545,7 +597,9 @@ class AudioEffectsController {
         return;
       }
 
-      // Activate the filter
+      // NEW: Set state IMMEDIATELY (not after async ops)
+      _effectStates[effectType] = true;
+
       final activated = await AudioEffectErrorHandler.safeActivateFilter(
         audioSource,
         effectType,
@@ -553,18 +607,13 @@ class AudioEffectsController {
 
       if (!activated) {
         log.severe(
-          '[AudioEffectsController] ❌ Failed to activate ${effectType.name}',
+          '[AudioEffectsController] ❌ Failed to activate ${effectType.name}, effectstate: ${_effectStates[effectType]}',
         );
+        _effectStates[effectType] = false; // Rollback
         return;
       }
 
-      // Set default parameters on the filter (not per-voice)
       await _applyFilterByType(effectType, parameters, audioSource);
-
-      // Update state
-      _effectStates[effectType] = true;
-
-      // Clear cache to force fresh application
       _voiceEffectCache.clear();
 
       log.info(
@@ -572,11 +621,11 @@ class AudioEffectsController {
       );
     } catch (e, st) {
       log.severe(
-        '[AudioEffectsController] ❌ Failed to activate ${effectType.name}',
+        '[AudioEffectsController] ❌ Failed to activate ${effectType.name}, effectstate: ${_effectStates[effectType]}',
         e,
         st,
       );
-      _effectStates[effectType] = false;
+      _effectStates[effectType] = false; // Rollback on error
       rethrow;
     }
   }
@@ -589,15 +638,15 @@ class AudioEffectsController {
     try {
       await _deactivateFilterByType(effectType, audioSource);
 
-      // Update state
+      /// Update state
       _effectStates[effectType] = false;
 
       log.info(
-        '[AudioEffectsController] ✓ Effect deactivated: ${effectType.name}',
+        '[AudioEffectsController] ✓ Effect deactivated: ${effectType.name}, effektState: ${_effectStates[effectType]}',
       );
     } catch (e, st) {
       log.severe(
-        '[AudioEffectsController] ❌ Failed to deactivate ${effectType.name}',
+        '[AudioEffectsController] ❌ Failed to deactivate ${effectType.name}, effektState: ${_effectStates[effectType]}',
         e,
         st,
       );
@@ -653,13 +702,13 @@ class AudioEffectsController {
           break;
 
         case AudioEffectType.none:
-          log.fine('[AudioEffectsController] No filter to configure (type=none)');
+          log.fine(
+            '[AudioEffectsController] No filter to configure (type=none)',
+          );
           break;
       }
 
-      log.fine(
-        '[AudioEffectsController] ✓ ${type.name} filter configured',
-      );
+      log.fine('[AudioEffectsController] ✓ ${type.name} filter configured');
     } catch (e, st) {
       log.severe(
         '[AudioEffectsController] ❌ Error configuring ${type.name} filter',
@@ -699,7 +748,8 @@ class AudioEffectsController {
 
     // Set default parameters (these apply to all voices unless overridden)
     audioSource.filters.freeverbFilter.wet(soundHandle: null).value = intensity;
-    audioSource.filters.freeverbFilter.roomSize(soundHandle: null).value = roomSize;
+    audioSource.filters.freeverbFilter.roomSize(soundHandle: null).value =
+        roomSize;
     audioSource.filters.freeverbFilter.damp(soundHandle: null).value = damp;
     audioSource.filters.freeverbFilter.width(soundHandle: null).value = width;
   }
@@ -768,9 +818,12 @@ class AudioEffectsController {
 
     // Set default parameters
     audioSource.filters.biquadFilter.wet(soundHandle: null).value = intensity;
-    audioSource.filters.biquadFilter.frequency(soundHandle: null).value = frequency;
-    audioSource.filters.biquadFilter.resonance(soundHandle: null).value = resonance;
-    audioSource.filters.biquadFilter.type(soundHandle: null).value = type.toDouble();
+    audioSource.filters.biquadFilter.frequency(soundHandle: null).value =
+        frequency;
+    audioSource.filters.biquadFilter.resonance(soundHandle: null).value =
+        resonance;
+    audioSource.filters.biquadFilter.type(soundHandle: null).value = type
+        .toDouble();
   }
 
   /// Internal method to actually apply the effect (legacy compatibility)
@@ -803,9 +856,16 @@ class AudioEffectsController {
         case AudioEffectType.reverb:
           effect = ReverbEffect();
           final reverb = effect as ReverbEffect;
-          reverb.setWetLevel(parameters['intensity'] as double? ?? _currentWetness);
-          reverb.setRoomSize(parameters['roomSize'] as double? ?? AudioConfig.defaultReverbRoomSize);
-          reverb.setDamp(parameters['damp'] as double? ?? AudioConfig.defaultReverbDamp);
+          reverb.setWetLevel(
+            parameters['intensity'] as double? ?? _currentWetness,
+          );
+          reverb.setRoomSize(
+            parameters['roomSize'] as double? ??
+                AudioConfig.defaultReverbRoomSize,
+          );
+          reverb.setDamp(
+            parameters['damp'] as double? ?? AudioConfig.defaultReverbDamp,
+          );
 
           _configureReverbFilter(
             audioSource,
@@ -819,9 +879,15 @@ class AudioEffectsController {
         case AudioEffectType.delay:
           effect = DelayEffect();
           final delay = effect as DelayEffect;
-          delay.setWetLevel(parameters['intensity'] as double? ?? _currentWetness);
-          delay.setDelayTime(parameters['delay'] as double? ?? AudioConfig.defaultEchoDelayTime);
-          delay.setDecay(parameters['decay'] as double? ?? AudioConfig.defaultEchoDecay);
+          delay.setWetLevel(
+            parameters['intensity'] as double? ?? _currentWetness,
+          );
+          delay.setDelayTime(
+            parameters['delay'] as double? ?? AudioConfig.defaultEchoDelayTime,
+          );
+          delay.setDecay(
+            parameters['decay'] as double? ?? AudioConfig.defaultEchoDecay,
+          );
 
           _configureDelayFilter(
             audioSource,
@@ -834,10 +900,23 @@ class AudioEffectsController {
         case AudioEffectType.biquad:
           effect = BiquadEffect();
           final biquad = effect as BiquadEffect;
-          biquad.setWetLevel(parameters['intensity'] as double? ?? _currentWetness);
-          biquad.setFrequency(parameters['frequency'] as double? ?? AudioConfig.defaultBiquadFrequency);
-          biquad.setResonance(parameters['resonance'] as double? ?? AudioConfig.defaultBiquadResonance);
-          biquad.setType(_parseIntValue(parameters['type'], AudioConfig.defaultBiquadFilterType));
+          biquad.setWetLevel(
+            parameters['intensity'] as double? ?? _currentWetness,
+          );
+          biquad.setFrequency(
+            parameters['frequency'] as double? ??
+                AudioConfig.defaultBiquadFrequency,
+          );
+          biquad.setResonance(
+            parameters['resonance'] as double? ??
+                AudioConfig.defaultBiquadResonance,
+          );
+          biquad.setType(
+            _parseIntValue(
+              parameters['type'],
+              AudioConfig.defaultBiquadFilterType,
+            ),
+          );
 
           _configureBiquadFilter(
             audioSource,
@@ -959,7 +1038,9 @@ class AudioEffectsController {
         if (effectType != AudioEffectType.none) {
           // Note: This requires an audio source, which we don't have here
           // This should be called when audio source is available
-          log.info('[AudioEffectsController] Effect state restored: ${effectType.name}');
+          log.info(
+            '[AudioEffectsController] Effect state restored: ${effectType.name}',
+          );
         }
       }
     }
