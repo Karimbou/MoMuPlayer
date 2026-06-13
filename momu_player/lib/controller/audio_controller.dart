@@ -82,7 +82,7 @@ class AudioController {
         _currentAudioSource = source;
         
         // Capture the voice handle from play()
-        final voiceHandle = await _soloud.play(source);
+        final voiceHandle = _soloud.play(source);
         
         // Store the voice handle
         _activeVoices[note] = voiceHandle;
