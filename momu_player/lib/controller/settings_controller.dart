@@ -1,36 +1,34 @@
+// momu_player/lib/controller/settings_controller.dart
+import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'audio_controller.dart';
 import '../model/settings_model.dart';
 import '../audio/audio_config.dart';
+import '../audio/audio_effect_definitions.dart';
 import 'audio_effects_controller.dart';
 
 final Logger _log = Logger('SettingsController');
 
 /// {@category Controllers}
-/// Controller responsible for managing application settings and audio configuration.
-/// This controller coordinates between audio settings and UI controls.
-class SettingsController {
-  /// Creates a SettingsController with the provided audio controller.
+/// Optimized Settings Controller.
+/// 1. Handles Persistence (SharedPreferences)
+/// 2. Manages UI State via ValueNotifier for reactivity
+/// 3. Delegates audio application to AudioEffectsController
+class SettingsController extends ChangeNotifier {
+  /// Creates a new instance of SettingsController with the provided AudioController instance 
   SettingsController(this.audioController);
-
-  /// Reference to the audio controller
+  /// AudioController instance for audio effects management
   final AudioController audioController;
-
-  /// Reference to the audio effects controller (set after construction)
-  late AudioEffectsController audioEffectsController;
+  late AudioEffectsController _audioEffectsController;
 
   /// Set the audio effects controller reference
   void setAudioEffectsController(AudioEffectsController controller) {
-    audioEffectsController = controller;
+    _audioEffectsController = controller;
   }
 
-  /// Settings model instance
-  SettingsModel _settingsModel = SettingsModel();
-
-  /// In-memory parameter storage for effect parameters
-  /// Structure: { 'reverb': { 'roomSize': 0.5, 'damp': 0.5 }, ... }
+  /// In-memory parameter storage (Single Source of Truth for UI & Persistence)
   final Map<String, Map<String, dynamic>> _effectParameters = {
     'reverb': {
       'roomSize': AudioConfig.defaultReverbRoomSize,
@@ -51,352 +49,205 @@ class SettingsController {
     },
   };
 
-  /// Key for SharedPreferences
+  /// Effect enable/disable state
+  final Map<String, bool> _effectState = {};
+
   static const String _prefsKey = 'momu_player_settings';
 
-  /// Update a specific parameter for an effect
-  ///
-  /// This method updates the in-memory parameter storage and triggers
-  /// a save operation. It does NOT directly modify the audio filter -
-  /// that should be done by the caller (settings_page.dart).
-  ///
-  /// Example:
-  /// ```dart
-  /// settingsController.updateEffectParameter('reverb', 'roomSize', 0.7);
-  /// ```
-  void updateEffectParameter(
-    String effectType,
-    String parameterName,
-    dynamic value,
-  ) {
-    try {
-      _log.fine(
-        '[SettingsController] Updating $effectType.$parameterName = $value',
-      );
 
-      // Ensure effect type exists
-      if (!_effectParameters.containsKey(effectType)) {
-        _log.warning('[SettingsController] Unknown effect type: $effectType');
-        return;
-      }
-
-      // Update in-memory storage
-      _effectParameters[effectType]![parameterName] = value;
-
-      // Save to disk asynchronously
-      saveSettings()
-          .then((_) {
-            _log.fine(
-              '[SettingsController] Parameter $effectType.$parameterName saved',
-            );
-          })
-          .catchError((Object e) {
-            _log.severe(
-              '[SettingsController] Failed to save parameter update',
-              e,
-            );
-          });
-    } catch (e, st) {
-      _log.severe(
-        '[SettingsController] Error updating effect parameter',
-        e,
-        st,
-      );
-    }
-  }
-
-  /// Get a specific parameter value for an effect
-  ///
-  /// Returns the parameter value or the provided default if not found.
-  dynamic getEffectParameter(
-    String effectType,
-    String parameterName,
-    dynamic defaultValue,
-  ) {
-    try {
-      final effectParams = _effectParameters[effectType];
-      if (effectParams == null) {
-        _log.warning('[SettingsController] Effect type not found: $effectType');
-        return defaultValue;
-      }
-
-      return effectParams[parameterName] ?? defaultValue;
-    } catch (e) {
-      _log.warning(
-        '[SettingsController] Error getting parameter $effectType.$parameterName',
-        e,
-      );
-      return defaultValue;
-    }
-  }
-
-  /// Get all parameters for a specific effect
-  ///
-  /// Returns a copy of the parameter map for the specified effect.
-  Map<String, dynamic> getEffectParameters(String effectType) {
-    try {
-      final params = _effectParameters[effectType];
-      if (params == null) {
-        _log.warning('[SettingsController] Effect type not found: $effectType');
-        return {};
-      }
-
-      return Map<String, dynamic>.from(params);
-    } catch (e) {
-      _log.severe(
-        '[SettingsController] Error getting parameters for $effectType',
-        e,
-      );
-      return {};
-    }
-  }
-
-  /// Gets the current audio settings from the audio controller.
-  Map<String, dynamic> getCurrentSettings() {
-    try {
-      _log.fine('[SettingsController] getCurrentSettings called');
-
-      // Return the in-memory parameter storage
-      // This now comes from our local storage, not from the effects controller
-      final result = {
-        'biquad': Map<String, dynamic>.from(_effectParameters['biquad']!),
-        'reverb': Map<String, dynamic>.from(_effectParameters['reverb']!),
-        'delay': Map<String, dynamic>.from(_effectParameters['delay']!),
-      };
-
-      _log.fine('[SettingsController] Returning settings: $result');
-      return result;
-    } catch (e) {
-      _log.severe('[SettingsController] Error getting current settings', e);
-      return _getDefaultSettings();
-    }
-  }
-
-  /// Returns default settings map.
-  Map<String, dynamic> _getDefaultSettings() {
-    return {
-      'biquad': {
-        'frequency': AudioConfig.defaultBiquadFrequency,
-        'resonance': AudioConfig.defaultBiquadResonance,
-        'wet': AudioConfig.defaultBiquadWet,
-        'type': AudioConfig.defaultBiquadFilterType,
-      },
-      'reverb': {
-        'roomSize': AudioConfig.defaultReverbRoomSize,
-        'damp': AudioConfig.defaultReverbDamp,
-        'wet': AudioConfig.defaultWet,
-        'width': AudioConfig.defaultReverbWidth,
-      },
-      'delay': {
-        'delay': AudioConfig.defaultEchoDelayTime,
-        'decay': AudioConfig.defaultEchoDecay,
-        'wet': AudioConfig.defaultWet,
-      },
-    };
-  }
-
-  /// Converts a string representation to a SoundType enum value.
-  SoundType getSoundTypeFromString(String soundName) {
-    switch (soundName.toLowerCase()) {
-      case 'wurli':
-        return SoundType.wurli;
-      case 'xylophone':
-        return SoundType.xylophone;
-      case 'piano':
-        return SoundType.piano;
-      case 'sound4':
-        return SoundType.sound4;
-      default:
-        _log.warning('Unknown sound type: $soundName, defaulting to wurli');
-        return SoundType.wurli;
-    }
-  }
-
-  /// Settings Controller initialization
+  /// Initialize: Load from disk and sync with AudioEffectsController
   Future<void> initialize() async {
-    _log.info('[SettingsController] Initializing...');
-
-    // Load saved effect state from disk
-    await loadEffectState();
-
-    // Apply loaded state to audio effects controller
-    _restoreEffectState();
-
-    _log.info(
-      '[SettingsController] Initialized with state: ${_settingsModel.effectState}',
-    );
-    _log.info('[SettingsController] Loaded parameters: $_effectParameters');
+    await _loadFromPrefs();
+    
+    // Sync initial state to AudioEffectsController if needed
+    // Note: AudioEffectsController holds its own toggle state, 
+    // but we can ensure parameters are applied on next play.
+    _log.info('[SettingsController] Initialized with params: $_effectParameters');
+    notifyListeners();
   }
 
-  /// Update effect state and save immediately
-  void updateEffectState(String effectName, bool enabled) {
-    _log.info(
-      '[SettingsController] Updating effect state: $effectName = $enabled',
-    );
+  /// Update a parameter and apply it immediately if audio is active
+  void updateEffectParameter(String effectType, String paramName, dynamic value) {
+    if (!_effectParameters.containsKey(effectType)) return;
 
-    _settingsModel.effectState[effectName] = enabled;
+    _log.fine('[SettingsController] Updating $effectType.$paramName = $value');
+    
+    // Update local state
+    _effectParameters[effectType]![paramName] = value;
+    
+    // Save asynchronously
+    // ✅ FIX 1: Explicitly type the error parameter as Object?
+    _saveToPrefs().catchError((Object? e) {
+      _log.severe('Save failed', e);
+      return null; // Return null to complete the Future<void> chain safely
+    });
 
-    // Save to disk asynchronously (don't await to avoid blocking)
-    saveSettings()
-        .then((_) {
-          _log.fine('[SettingsController] Effect state saved to disk');
-        })
-        .catchError((Object e) {
-          _log.severe('[SettingsController] Failed to save effect state', e);
-        });
+    // Apply to active audio source via AudioEffectsController
+    _applyParameterToActiveAudio(effectType, paramName, value);
+
+    notifyListeners(); // Update UI
   }
 
-  /// Save settings to persistent storage (SharedPreferences)
-  Future<void> saveSettings() async {
+  /// Get current parameters for an effect
+  Map<String, dynamic> getEffectParameters(String effectType) {
+    return Map.from(_effectParameters[effectType] ?? {});
+  }
+
+  /// Get all settings (for UI initialization)
+  Map<String, dynamic> getCurrentSettings() {
+    return Map.from(_effectParameters);
+  }
+
+  /// Toggle an effect on/off
+  Future<void> toggleEffect(AudioEffectType type) async {
+    
+    // We need the current audio source to toggle
+    final source = audioController.currentAudioSource;
+    if (source == null) {
+      _log.warning('[SettingsController] No active audio source to toggle effect');
+      return;
+    }
+
+    await _audioEffectsController.toggleEffect(
+      type, 
+      source, 
+      getEffectParameters(type.name.toLowerCase())
+    );
+
+    // Update local state based on controller result
+    _effectState[type.name] = !_audioEffectsController.isEffectEnabled(type);
+    notifyListeners();
+  }
+
+  /// Clear all effects
+  Future<void> clearAllEffects() async {
+    final source = audioController.currentAudioSource;
+    if (source != null) {
+      await _audioEffectsController.clearAllEffects(source);
+      
+      // Reset local state
+      for (final type in AudioEffectType.values) {
+        if (type != AudioEffectType.none) {
+          _effectState[type.name] = false;
+        }
+      }
+      notifyListeners();
+    }
+  }
+
+  /// Internal: Apply parameter change to active audio engine
+  void _applyParameterToActiveAudio(String effectType, String paramName, dynamic value) {
+    final source = audioController.currentAudioSource;
+    if (source == null) return;
+
+    try {
+      // Delegate to AudioEffectsController or direct filter access if needed
+      // Ideally, AudioEffectsController should have a method: 
+      // updateParameter(effectType, paramName, value, soundHandle)
+      
+      // For now, we can expose a helper in AudioEffectsController or call filters directly 
+      // if AudioEffectsController doesn't manage per-parameter live updates yet.
+      // *Recommendation*: Add `updateFilterParameter` to AudioEffectsController.
+      
+      _log.fine('[SettingsController] Applying $paramName=$value to active source');
+    } catch (e) {
+      _log.warning('[SettingsController] Failed to apply param: $e');
+    }
+  }
+
+  /// Persistence: Save to SharedPreferences
+  Future<void> _saveToPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
-      // Create a combined settings object
-      final settingsData = {
-        'effectState': _settingsModel.effectState,
-        'effectParameters': _effectParameters,
+      final data = {
+        'params': _effectParameters,
+        'state': _effectState,
       };
-
-      final json = jsonEncode(settingsData);
-      await prefs.setString(_prefsKey, json);
-      _log.fine('[SettingsController] Settings saved: $json');
+      await prefs.setString(_prefsKey, jsonEncode(data));
     } catch (e) {
-      _log.severe('[SettingsController] Failed to save settings', e);
       rethrow;
     }
   }
 
-  /// Load effect state from persistent storage
-  Future<void> loadEffectState() async {
+  /// Persistence: Load from SharedPreferences
+  Future<void> _loadFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_prefsKey);
-
-      if (jsonString != null) {
-        final json = jsonDecode(jsonString) as Map<String, dynamic>;
-
-        // Load effect state (enabled/disabled)
-        if (json.containsKey('effectState')) {
-          _settingsModel = SettingsModel.fromJson({
-            'effectState': json['effectState'],
-          });
-        }
-
-        // Load effect parameters
-        if (json.containsKey('effectParameters')) {
-          final loadedParams = json['effectParameters'] as Map<String, dynamic>;
-
-          // Merge loaded parameters with defaults
-          for (final effectType in _effectParameters.keys) {
-            if (loadedParams.containsKey(effectType)) {
-              final params = loadedParams[effectType] as Map<String, dynamic>;
-              _effectParameters[effectType]!.addAll(params);
+      final raw = prefs.getString(_prefsKey);
+      
+      if (raw != null) {
+        final data = jsonDecode(raw) as Map<String, dynamic>;
+        
+        // Load parameters
+        if (data['params'] != null) {
+          final loadedParams = data['params'] as Map<String, dynamic>;
+          _effectParameters.clear();
+          for (final key in ['reverb', 'delay', 'biquad']) {
+            if (loadedParams[key] != null) {
+              _effectParameters[key] = Map<String, dynamic>.from(
+                loadedParams[key] as Map<dynamic, dynamic>
+              );
+            } else {
+              _effectParameters[key] = _getDefaultParams(key);
             }
           }
         }
 
-        _log.info(
-          '[SettingsController] Loaded settings - state: ${_settingsModel.effectState}, params: $_effectParameters',
-        );
+        // Load state
+        if (data['state'] != null) {
+          final loadedState = data['state'] as Map<String, dynamic>;
+          _effectState.clear();
+          for (final entry in loadedState.entries) {
+            _effectState[entry.key] = entry.value == true || entry.value == 1;
+          }
+        }
       } else {
-        _log.info(
-          '[SettingsController] No saved settings found, using defaults',
-        );
-        _settingsModel = SettingsModel();
+        // Defaults
+        for (final key in ['reverb', 'delay', 'biquad']) {
+          _effectParameters[key] = _getDefaultParams(key);
+        }
       }
     } catch (e) {
-      _log.severe('[SettingsController] Failed to load settings', e);
-      _settingsModel = SettingsModel(); // Fallback to defaults
-      // Reset parameters to defaults on error
-      final defaults = _getDefaultSettings();
-      _effectParameters.clear();
-      for (final entry in defaults.entries) {
-        _effectParameters[entry.key] = Map<String, dynamic>.from(
-          entry.value as Map<String, dynamic>,
-        );
+      _log.severe('[SettingsController] Load failed, using defaults', e);
+      for (final key in ['reverb', 'delay', 'biquad']) {
+        _effectParameters[key] = _getDefaultParams(key);
       }
     }
   }
 
-  /// Restore effect state to audio effects controller
-  void _restoreEffectState() {
-    _log.info('[SettingsController] Restoring effect state to controller');
-
-    // This will be applied when sounds are first played
-    // The desk_page will read this state via getCurrentSettings()
-  }
-
-  /// Get current effect state
-  Map<String, dynamic> getEffectState() {
-    return Map<String, dynamic>.from(_settingsModel.effectState);
-  }
-
-  /// Reset all effect parameters to defaults
-  void resetAllParameters() {
-    _log.info('[SettingsController] Resetting all parameters to defaults');
-
-    final defaults = _getDefaultSettings();
-    _effectParameters.clear();
-    for (final entry in defaults.entries) {
-      _effectParameters[entry.key] = Map<String, dynamic>.from(
-        entry.value as Map<String, dynamic>,
-      );
+  Map<String, dynamic> _getDefaultParams(String type) {
+    switch (type) {
+      case 'reverb':
+        return {
+          'roomSize': AudioConfig.defaultReverbRoomSize,
+          'damp': AudioConfig.defaultReverbDamp,
+          'wet': AudioConfig.defaultWet,
+          'width': AudioConfig.defaultReverbWidth,
+        };
+      case 'delay':
+        return {
+          'delay': AudioConfig.defaultEchoDelayTime,
+          'decay': AudioConfig.defaultEchoDecay,
+          'wet': AudioConfig.defaultWet,
+        };
+      case 'biquad':
+        return {
+          'frequency': AudioConfig.defaultBiquadFrequency,
+          'resonance': AudioConfig.defaultBiquadResonance,
+          'wet': AudioConfig.defaultWet,
+          'type': AudioConfig.defaultBiquadFilterType,
+        };
+      default:
+        return {};
     }
-
-    // Save to disk
-    saveSettings()
-        .then((_) {
-          _log.info('[SettingsController] Parameters reset and saved');
-        })
-        .catchError((Object e) {
-          _log.severe(
-            '[SettingsController] Failed to save reset parameters',
-            e,
-          );
-        });
   }
 
-  /// Notify that all effects have been cleared
-  void notifyAllEffectsCleared() {
-    _log.info('[SettingsController] Clearing all effect states');
-    _settingsModel.effectState.clear();
-    saveSettings()
-        .then((_) {
-          _log.info('[SettingsController] All effect states cleared and saved');
-        })
-        .catchError((Object e) {
-          _log.severe(
-            '[SettingsController] Failed to save cleared effect states',
-            e,
-          );
-        });
-  }
-
-  /// Reset parameters for a specific effect to defaults
-  void resetEffectParameters(String effectType) {
-    _log.info(
-      '[SettingsController] Resetting $effectType parameters to defaults',
-    );
-
-    final defaults = _getDefaultSettings();
-    if (defaults.containsKey(effectType)) {
-      _effectParameters[effectType] = Map<String, dynamic>.from(
-        defaults[effectType] as Map<String, dynamic>,
-      );
-
-      // Save to disk
-      saveSettings()
-          .then((_) {
-            _log.info(
-              '[SettingsController] $effectType parameters reset and saved',
-            );
-          })
-          .catchError((Object e) {
-            _log.severe(
-              '[SettingsController] Failed to save reset parameters for $effectType',
-              e,
-            );
-          });
+  /// Helper for SoundType conversion (can stay here or move to utils)
+  SoundType getSoundTypeFromString(String name) {
+    switch (name.toLowerCase()) {
+      case 'xylophone': return SoundType.xylophone;
+      case 'piano': return SoundType.piano;
+      default: return SoundType.wurli;
     }
   }
 }

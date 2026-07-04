@@ -1,205 +1,101 @@
-// Copyright (c) 2025 Karim Bouchouchi. All rights reserved.
-
-library;
-
-/// * Audio playback controller
-/// * UI screens for playback control
-/// * Error handling and loading states
-///
-/// The application follows a simple architecture:
-/// * Main app initialization in [main]
-/// * Core audio controller setup
-/// * UI layer with loading/error states
-/// * Main playback interface
-import 'dart:developer' as dev;
-import 'dart:async';
-import 'package:flutter/foundation.dart';
+// momu_player/lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
-import 'components/loading_screen.dart';
 import 'package:logging/logging.dart';
-import 'components/error_screen.dart';
-import 'screens/desk_page.dart';
 import 'controller/audio_controller.dart';
 import 'controller/audio_effects_controller.dart';
 import 'controller/settings_controller.dart';
-import 'constants.dart';
+import 'screens/desk_page.dart';
+import 'components/error_screen.dart';
 
-/// Entry point of the application
-///
-/// Initializes core services and runs the app:
-/// * Sets up logging
-/// * Initializes audio controller
-/// * Handles initialization errors
-/// * Starts the main app widget
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  Logger.root.level = kDebugMode ? Level.FINE : Level.INFO;
+  
+  Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    dev.log(
-      record.message,
-      time: record.time,
-      level: record.level.value,
-      name: record.loggerName,
-      zone: record.zone,
-      error: record.error,
-      stackTrace: record.stackTrace,
-    );
+    debugPrint('${record.time} ${record.level.name}: ${record.message}');
   });
 
-  try {
-    // Initialize audio controller first
-    final audioController = AudioController(SoLoud.instance);
-    await audioController.initialize();
-
-    // Create settings controller (without effects controller initially)
-    final settingsController = SettingsController(audioController);
-
-    // Initialize effects controller WITH settings controller reference
-    final audioEffectsController = AudioEffectsController(
-      audioController,
-      settingsController,
-    );
-    await audioEffectsController.initialize();
-
-    // Set the effects controller in settings controller
-    settingsController.setAudioEffectsController(audioEffectsController);
-
-    // Initialize settings (loads saved state)
-    await settingsController.initialize();
-
-    runApp(
-      MoMuPlayerApp(
-        soLoud: SoLoud.instance,
-        audioController: audioController,
-        audioEffectsController: audioEffectsController,
-        settingsController: settingsController,
-      ),
-    );
-  } catch (e, stackTrace) {
-    final error = e is TimeoutException
-        ? 'App failed to initialize (timeout)'
-        : 'App failed to initialize: ${e.toString()}';
-    Logger('main').severe(error, e, stackTrace);
-    runApp(
-      MaterialApp(
-        home: ErrorScreen(
-          title: 'Initialization Failed',
-          audioController: AudioController(SoLoud.instance),
-        ),
-      ),
-    );
-  }
+  runApp(const MomuPlayerApp());
 }
 
-/// Root widget of the music player application
-///
-/// Manages:
-/// * App initialization state
-/// * Audio controller lifecycle
-/// * Navigation between main screens
-class MoMuPlayerApp extends StatefulWidget {
-  /// Constructor for MoMuPlayerApp
-  const MoMuPlayerApp({
-    required this.soLoud,
-    required this.audioController,
-    required this.audioEffectsController,
-    required this.settingsController,
-    super.key,
-  });
-
-  /// SoLoud instance for audio operations
-  final SoLoud soLoud;
-
-  /// Audiocontroller controls the SoLoud Audio features
-  final AudioController audioController;
-
-  /// Controller for audio effects
-  final AudioEffectsController audioEffectsController;
-
-  /// Controller for application settings
-  final SettingsController settingsController;
-
-  @override
-  State<MoMuPlayerApp> createState() => _MoMuPlayerAppState();
-}
-
-/// State for [MoMuPlayerApp]
-///
-/// Handles:
-/// * Initial loading state
-/// * Audio controller initialization
-/// * Error handling during startup
-class _MoMuPlayerAppState extends State<MoMuPlayerApp> {
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeApp();
-  }
-
-  @override
-  void dispose() {
-    widget.audioController.dispose();
-    widget.audioEffectsController.dispose();
-    super.dispose();
-  }
-
-  /// Initializes the application asynchronously
-  ///
-  /// Waits for audio controller initialization and handles errors
-  Future<void> _initializeApp() async {
-    try {
-      // The controllers are already initialized in main(), so we just need to
-      // ensure the UI is updated
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e, stackTrace) {
-      Logger('MoMuPlayerApp').severe('Failed to initialize app', e, stackTrace);
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute<void>(
-            builder: (context) => ErrorScreen(
-              title: 'Initialization Failed',
-              audioController: widget.audioController,
-            ),
-          ),
-        );
-      }
-    }
-  }
+/// Creates the Startup process for the application
+class MomuPlayerApp extends StatelessWidget {
+  /// The main entry point of the application
+  const MomuPlayerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return MaterialApp(
-        theme: ThemeData.dark(useMaterial3: true).copyWith(
-          primaryColor: const Color(0xFF0A0E21),
-          scaffoldBackgroundColor: const Color(0xFF0A0E21),
-        ),
-
-        /// Function to handle the loading screen from loading_screen.dart
-        home: const LoadingScreen(),
-      );
-    }
     return MaterialApp(
-      title: kAppName,
-      theme: ThemeData.dark(useMaterial3: true).copyWith(
-        primaryColor: const Color(0xFF0A0E21),
-        scaffoldBackgroundColor: const Color(0xFF0A0E21),
+      title: 'MoMu Player',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: Colors.blueGrey,
       ),
-      home: DeskPage(
-        title: kAppName,
-        audioController: widget.audioController,
-        audioEffectsController: widget.audioEffectsController,
-        settingsController: widget.settingsController,
+      home: FutureBuilder<void>(
+        future: _initializeControllers(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (snapshot.hasError) {
+            // ✅ FIXED: Passed correct parameters matching ErrorScreen constructor
+            return ErrorScreen(
+              errorMessage: 'Failed to initialize audio engine.',
+              technicalDetails: '${snapshot.error}',
+            );
+          }
+
+          // Controllers are ready, pass them to DeskPage
+          final controllers = snapshot.data as _AppControllers;
+          
+          return DeskPage(
+            audioController: controllers.audioController,
+            audioEffectsController: controllers.audioEffectsController,
+            settingsController: controllers.settingsController,
+          );
+        },
       ),
     );
   }
+
+  static Future<_AppControllers> _initializeControllers() async {
+    final audioController = AudioController(SoLoud.instance);
+    await audioController.initialize();
+
+    final settingsController = SettingsController(audioController);
+    final audioEffectsController = AudioEffectsController(settingsController);
+    
+    // Wire them together
+    settingsController.setAudioEffectsController(audioEffectsController);
+
+    // Load default sounds
+    await audioController.loadInstrumentSounds('wurli');
+    
+    // Load settings from disk
+    await settingsController.initialize();
+
+    return _AppControllers(
+      audioController: audioController,
+      audioEffectsController: audioEffectsController,
+      settingsController: settingsController,
+    );
+  }
+}
+
+/// Helper class to bundle controllers
+class _AppControllers {
+  _AppControllers({
+    required this.audioController,
+    required this.audioEffectsController,
+    required this.settingsController,
+  });
+  
+  final AudioController audioController;
+  final AudioEffectsController audioEffectsController;
+  final SettingsController settingsController;
 }

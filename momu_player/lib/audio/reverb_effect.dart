@@ -1,84 +1,97 @@
 // lib/audio/reverb_effect.dart
 import 'package:logging/logging.dart';
+import 'audio_effect_definitions.dart'; // Import shared types
 import 'audio_config.dart';
-import '../controller/audio_effects_controller.dart';
 
 /// {@category Audio}
 
-/// Reverb filter effect implementation with wet/dry mixing support
+/// Reverb effect implementation with wet/dry mixing support
 class ReverbEffect implements AudioEffect, WetDryMixin {
-  /// Creates a reverb effect (keine direkte AudioSource-Abhängigkeit)
+  /// Creates a reverb effect
   ReverbEffect();
-  
+
   @override
   final Logger log = Logger('ReverbEffect');
 
   /// Current wet level (0.0 - 1.0)
-  double _wetLevel = AudioConfig.defaultReverbWet;
-  
+  double _intensity = AudioConfig.defaultReverbWet;
+
   /// Current room size (0.0 - 1.0)
   double _roomSize = AudioConfig.defaultReverbRoomSize;
-  
-  /// Current damping (0.0 - 1.0)
-  double _damping = AudioConfig.defaultReverbDamp;
+
+  /// Current dampening (0.0 - 1.0)
+  double _damp = AudioConfig.defaultReverbDamp;
+
+  /// Current width (0.0 - 1.0)
+  double _width = AudioConfig.defaultReverbWidth;
 
   @override
   void apply() {
-    // Diese Klasse bereitet nur den State vor, die eigentliche Anwendung
-    // passiert im AudioEffectsController über SoLoud / AudioSource API.
+    // State preparation only; actual application happens in AudioEffectsController via SoLoud API
     log.info(
-      '✓ Reverb state prepared: wet=$_wetLevel, roomSize=$_roomSize, damping=$_damping',
+      '✓ Reverb state prepared: intensity=$_intensity, roomSize=$_roomSize, damp=$_damp, width=$_width',
     );
   }
 
   @override
   void remove() {
-    // State zurücksetzen – der Controller entfernt den Filter an der Quelle
-    _wetLevel = AudioConfig.defaultReverbWet;
+    // Reset state – Controller removes filter at source
+    _intensity = AudioConfig.defaultReverbWet;
     _roomSize = AudioConfig.defaultReverbRoomSize;
-    _damping = AudioConfig.defaultReverbDamp;
+    _damp = AudioConfig.defaultReverbDamp;
+    _width = AudioConfig.defaultReverbWidth;
     log.info('✓ Reverb removed (state reset)');
   }
 
   @override
   void resetToDefault() {
-    _wetLevel = AudioConfig.defaultReverbWet;
+    _intensity = AudioConfig.defaultReverbWet;
     _roomSize = AudioConfig.defaultReverbRoomSize;
-    _damping = AudioConfig.defaultReverbDamp;
+    _damp = AudioConfig.defaultReverbDamp;
+    _width = AudioConfig.defaultReverbWidth;
   }
 
   @override
-  Map<String, double> getCurrentSettings() {
+  Map<String, dynamic> getCurrentSettings() {
     return {
-      'intensity': _wetLevel,
+      'intensity': _intensity,
       'roomSize': _roomSize,
-      'damp': _damping,
+      'damp': _damp,
+      'width': _width,
     };
   }
 
   /// Sets the wet level of the effect (from WetDryMixin)
   @override
   void setWetLevel(double wet) {
-    _wetLevel = wet.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+    _intensity = wet.clamp(AudioConfig.minValue, AudioConfig.maxValue);
   }
 
   /// Gets the current wet level of the effect (from WetDryMixin)
   @override
-  double getWetLevel() => _wetLevel;
+  double getWetLevel() => _intensity;
 
-  /// Sets the room size of the effect
-  void setRoomSize(double roomSize) {
-    _roomSize = roomSize.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  /// Sets the room size
+  void setRoomSize(double size) {
+    _roomSize = size.clamp(AudioConfig.minValue, AudioConfig.maxValue);
   }
 
-  /// Gets the current room size of the effect
+  /// Gets the current room size
   double getRoomSize() => _roomSize;
 
-  /// Sets the damping of the effect (named setDamp for compatibility)
-  void setDamp(double damping) {
-    _damping = damping.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  /// Sets the dampening
+  void setDamp(double damp) {
+    _damp = damp.clamp(AudioConfig.minValue, AudioConfig.maxValue);
   }
 
-  /// Gets the current damping of the effect
-  double getDamping() => _damping;
+  /// Gets the current dampening
+  double getDamping() => _damp;
+
+  /// Sets the width
+  void setWidth(double width) {
+    _width = width.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  }
+
+  /// Gets the current width
+  double getWidth() => _width;
 }

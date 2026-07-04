@@ -1,95 +1,119 @@
-// Copyright (c) 2024 Karim Bouhouchi. All rights reserved.
-
+// momu_player/lib/components/error_screen.dart
 import 'package:flutter/material.dart';
-import '../main.dart';
-import 'package:flutter_soloud/flutter_soloud.dart';
-import '../controller/audio_controller.dart';
-import '../controller/audio_effects_controller.dart';
-import '../controller/settings_controller.dart';
 
-/// A widget that displays an error screen when the application encounters
-/// a critical error, such as initialization failures or audio system errors.
-///
-/// This screen is typically shown when:
-/// - The audio system fails to initialize
-/// - Required assets cannot be loaded
-/// - Critical system components are unavailable
+/// A dedicated screen for displaying fatal audio initialization errors.
 class ErrorScreen extends StatelessWidget {
-  /// Creates an error screen widget.
-  ///
-  /// The [key] parameter is optional and is used to identify this widget
-  /// in the widget tree.
+  /// The constructor for the ErrorScreen widget.
   const ErrorScreen({
     super.key,
-    required this.title,
-    required this.audioController,
-    this.audioEffectsController,
-    this.settingsController,
+    required this.errorMessage,
+    this.technicalDetails,
   });
+  /// The main error message to display
+  final String errorMessage;
 
-  /// Sets the title of the screen
-  final String title;
-
-  /// Sets the audio controller instance
-  final AudioController audioController;
-
-  /// Optional audio effects controller
-  final AudioEffectsController? audioEffectsController;
-
-  /// Optional settings controller
-  final SettingsController? settingsController;
+  /// Optional technical details for debugging
+  final String? technicalDetails;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E21),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 60),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(color: Colors.white, fontSize: 24),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () {
-                // Create fallback controllers if not provided
-                // Follow the same initialization pattern as main.dart
-                
-                // 1. Create settings controller first (without effects controller)
-                final settings = settingsController ?? 
-                    SettingsController(audioController);
-                
-                // 2. Create effects controller with settings controller reference
-                final effectsController = audioEffectsController ??
-                    AudioEffectsController(audioController, settings);
-                
-                // 3. Link them together if we created new ones
-                if (settingsController == null) {
-                  settings.setAudioEffectsController(effectsController);
-                  // Note: We're not awaiting initialize() here since this is synchronous
-                  // The controllers will initialize when the app starts
-                }
+      appBar: AppBar(
+        title: const Text('Initialization Error'),
+        backgroundColor: Theme.of(context).colorScheme.errorContainer,
+        foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Error Icon
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 24),
 
-                // Navigate back to main app
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute<void>(
-                    builder: (context) => MoMuPlayerApp(
-                      soLoud: SoLoud.instance,
-                      audioController: audioController,
-                      audioEffectsController: effectsController,
-                      settingsController: settings,
+              // Main Error Message
+              Text(
+                'Failed to Start Audio Engine',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+
+              // Detailed Message
+              Text(
+                errorMessage,
+                style: Theme.of(context).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+              
+              if (technicalDetails != null) ...[
+                const SizedBox(height: 24),
+                Card(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Technical Details:',
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SelectableText(
+                          technicalDetails!,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-              child: const Text('Retry'),
-            ),
-          ],
+                ),
+              ],
+
+              const Spacer(),
+
+              // Action Button
+              ElevatedButton.icon(
+                onPressed: () {
+                  // Attempt to pop back to root or restart the app flow
+                  // In a real scenario, you might want to call SystemNavigator.pop() and relaunch
+                  // or use a global key to reset state. 
+                  // For now, we'll try to navigate back if possible, otherwise just show a message.
+                  if (Navigator.canPop(context)) {
+                    Navigator.of(context).pop();
+                  } else {
+                    // If we can't pop (e.g., at the root), we might need to restart the app process
+                    // or show a "Close App" button. 
+                    // Here we just reload the current route if possible, or do nothing.
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please restart the application.')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry / Close'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

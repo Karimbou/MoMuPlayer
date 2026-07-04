@@ -1,6 +1,6 @@
 // lib/audio/delay_effect.dart
 import 'package:logging/logging.dart';
-import '../controller/audio_effects_controller.dart';
+import 'audio_effect_definitions.dart'; // Import shared types
 import 'audio_config.dart';
 
 /// {@category Audio}
@@ -24,8 +24,7 @@ class DelayEffect implements AudioEffect, WetDryMixin {
 
   @override
   void apply() {
-    // Diese Klasse bereitet nur den State vor, die eigentliche Anwendung
-    // passiert im AudioEffectsController über SoLoud / AudioSource API.
+    // State preparation only; actual application happens in AudioEffectsController via SoLoud API
     log.info(
       '✓ Delay state prepared: wet=$_wetLevel, delayTime=$_delayTime, decay=$_decay',
     );
@@ -33,7 +32,7 @@ class DelayEffect implements AudioEffect, WetDryMixin {
 
   @override
   void remove() {
-    // State zurücksetzen – der Controller entfernt den Filter an der Quelle
+    // Reset state – Controller removes filter at source
     _wetLevel = AudioConfig.defaultEchoWet;
     _delayTime = AudioConfig.defaultEchoDelayTime;
     _decay = AudioConfig.defaultEchoDecay;

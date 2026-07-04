@@ -1,101 +1,116 @@
-// lib/audio/biquad_effect.dart
+// lib/audio/voice_effect_mapping.dart
+import 'dart:async'; 
 import 'package:logging/logging.dart';
-import '../controller/audio_effects_controller.dart';
-import 'audio_config.dart';
+import 'audio_effect_definitions.dart'; // Import shared types
 
-/// {@category Audio}
-
-/// Biquad filter effect implementation with frequency, resonance, and type support
-class BiquadEffect implements AudioEffect, FrequencyMixin, TypeMixin {
-  /// Creates a biquad filter effect
-  BiquadEffect();
+/// Voice effect mapping data structure
+class VoiceEffectMapping {
+  /// Constructor for VoiceEffectMapping
+  VoiceEffectMapping({
+    required this.voiceId,
+    required this.appliedEffects,
+    required this.createdAt,
+    required this.audioSourceHash,
+  });
+  
+  /// Unique identifier for the voice effect
+  final int voiceId;
+  
+  /// Set of applied audio effects for the voice effect
+  final Set<AudioEffectType> appliedEffects;
+  
+  /// Timestamp when the voice effect was created
+  final DateTime createdAt;
+  
+  /// Hash of the audio source associated with this voice effect
+  final int audioSourceHash;
+  
+  /// Method to check if the voice effect is expired based
+  bool get isExpired {
+    // Voice mappings expire after 10 seconds (longer than typical sound duration)
+    return DateTime.now().difference(createdAt) > const Duration(seconds: 10);
+  }
 
   @override
-  final Logger log = Logger('BiquadEffect');
+  /// String representation of the voice effect mapping
+  String toString() {
+    return 'VoiceEffectMapping(voiceId: $voiceId, effects: $appliedEffects, age: ${DateTime.now().difference(createdAt).inSeconds}s)';
+  }
+}
 
-  /// Current wet level (0.0 - 1.0)
-  double _intensity = AudioConfig.defaultBiquadWet;
+/// Enhanced voice effect cache with automatic cleanup
+class VoiceEffectCache {
+  /// Start a periodic cleanup task to remove expired mappings
+  VoiceEffectCache() {
+    // Start periodic cleanup
+    _startCleanupTimer();
+  }
 
-  /// Current frequency in Hz (20.0 - 20000.0)
-  double _frequency = AudioConfig.defaultBiquadFrequency;
+  static final Logger _log = Logger('VoiceEffectCache');
+  final Map<int, VoiceEffectMapping> _cache = {};
+  Timer? _cleanupTimer;
 
-  /// Current resonance/Q factor (0.0 - 1.0)
-  double _resonance = AudioConfig.defaultBiquadResonance;
-
-  /// Current filter type (0=lowpass, 1=highpass, 2=bandpass, etc.)
-  int _type = AudioConfig.defaultBiquadFilterType;
-
-  @override
-  void apply() {
-    // Diese Klasse bereitet nur den State vor, die eigentliche Anwendung
-    // passiert im AudioEffectsController über SoLoud / AudioSource API.
-    log.info(
-      '✓ Biquad state prepared: intensity=$_intensity, frequency=$_frequency, resonance=$_resonance, type=$_type',
+  /// Add a voice-to-effect mapping
+  void add(int voiceId, Set<AudioEffectType> effects, int sourceHash) {
+    _cache[voiceId] = VoiceEffectMapping(
+      voiceId: voiceId,
+      appliedEffects: Set.from(effects),
+      createdAt: DateTime.now(),
+      audioSourceHash: sourceHash,
     );
+    _log.fine('[Cache] Added mapping for voice $voiceId: $effects');
   }
 
-  @override
-  void remove() {
-    // State zurücksetzen – der Controller entfernt den Filter an der Quelle
-    _intensity = AudioConfig.defaultBiquadWet;
-    _frequency = AudioConfig.defaultBiquadFrequency;
-    _resonance = AudioConfig.defaultBiquadResonance;
-    _type = AudioConfig.defaultBiquadFilterType;
-    log.info('✓ Biquad removed (state reset)');
+  /// Get effects for a voice
+  Set<AudioEffectType>? get(int voiceId) {
+    final mapping = _cache[voiceId];
+    if (mapping == null) {
+      _log.fine('[Cache] No mapping found for voice $voiceId');
+      return null;
+    }
+    
+    if (mapping.isExpired) {
+      _log.fine('[Cache] Mapping expired for voice $voiceId');
+      _cache.remove(voiceId);
+      return null;
+    }
+    
+    _log.fine('[Cache] Retrieved mapping for voice $voiceId: ${mapping.appliedEffects}');
+    return mapping.appliedEffects;
   }
 
-  @override
-  void resetToDefault() {
-    _intensity = AudioConfig.defaultBiquadWet;
-    _frequency = AudioConfig.defaultBiquadFrequency;
-    _resonance = AudioConfig.defaultBiquadResonance;
-    _type = AudioConfig.defaultBiquadFilterType;
+  /// Remove expired mappings
+  void removeExpired() {
+    final before = _cache.length;
+    _cache.removeWhere((_, mapping) => mapping.isExpired);
+    final removed = before - _cache.length;
+    if (removed > 0) {
+      _log.fine('[Cache] Removed $removed expired mappings');
+    }
   }
 
-  @override
-  Map<String, dynamic> getCurrentSettings() {
-    return {
-      'intensity': _intensity,
-      'frequency': _frequency,
-      'resonance': _resonance,
-      'type': _type,
-    };
+  /// Clear all mappings
+  void clear() {
+    final count = _cache.length;
+    _cache.clear();
+    _log.info('[Cache] Cleared $count mappings');
   }
 
-  /// Sets the wet level of the effect (intensity)
-  void setWetLevel(double wet) {
-    _intensity = wet.clamp(AudioConfig.minValue, AudioConfig.maxValue);
+  /// Get cache size
+  int get size => _cache.length;
+
+  /// Start periodic cleanup timer
+  void _startCleanupTimer() {
+    _cleanupTimer?.cancel();
+    _cleanupTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      removeExpired();
+    });
   }
 
-  /// Gets the current wet level of the effect
-  double getWetLevel() => _intensity;
-
-  /// Sets the frequency (from FrequencyMixin)
-  @override
-  void setFrequency(double frequency) {
-    _frequency = frequency.clamp(20.0, 20000.0); // Audio range
+  /// Dispose and cleanup
+  void dispose() {
+    _cleanupTimer?.cancel();
+    _cache.clear();
+    _log.info('[Cache] Disposed');
   }
-
-  /// Gets the current frequency (from FrequencyMixin)
-  @override
-  double getFrequency() => _frequency;
-
-  /// Sets the resonance/Q factor of the effect
-  void setResonance(double resonance) {
-    _resonance = resonance.clamp(AudioConfig.minValue, AudioConfig.maxValue);
-  }
-
-  /// Gets the current resonance of the effect
-  double getResonance() => _resonance;
-
-  /// Sets the filter type (from TypeMixin)
-  /// 0 = Lowpass, 1 = Highpass, 2 = Bandpass, etc.
-  @override
-  void setType(int type) {
-    _type = type;
-  }
-
-  /// Gets the current filter type (from TypeMixin)
-  @override
-  int getType() => _type;
 }

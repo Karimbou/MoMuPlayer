@@ -1,10 +1,10 @@
-// lib/audio/voice_effect_mapping.dart
-import 'dart:async'; 
+import 'dart:async';
 import 'package:logging/logging.dart';
-import '../controller/audio_effects_controller.dart';
+import 'audio_effect_definitions.dart'; // Import the definitions file where AudioEffectType is defined
 
 /// Voice effect mapping data structure
 class VoiceEffectMapping {
+  /// Constructor for VoiceEffectMapping
   VoiceEffectMapping({
     required this.voiceId,
     required this.appliedEffects,
@@ -12,17 +12,26 @@ class VoiceEffectMapping {
     required this.audioSourceHash,
   });
 
+  /// Unique identifier for the voice effect
   final int voiceId;
+
+  /// Set of applied audio effects for the voice effect
   final Set<AudioEffectType> appliedEffects;
+
+  /// Timestamp when the voice effect was created
   final DateTime createdAt;
+
+  /// Hash of the audio source associated with this voice effect
   final int audioSourceHash;
 
+  /// Method to check if the voice effect is expired based
   bool get isExpired {
     // Voice mappings expire after 10 seconds (longer than typical sound duration)
     return DateTime.now().difference(createdAt) > const Duration(seconds: 10);
   }
 
   @override
+  /// String representation of the voice effect mapping
   String toString() {
     return 'VoiceEffectMapping(voiceId: $voiceId, effects: $appliedEffects, age: ${DateTime.now().difference(createdAt).inSeconds}s)';
   }
@@ -30,6 +39,7 @@ class VoiceEffectMapping {
 
 /// Enhanced voice effect cache with automatic cleanup
 class VoiceEffectCache {
+  /// Start a periodic cleanup task to remove expired mappings
   VoiceEffectCache() {
     // Start periodic cleanup
     _startCleanupTimer();
@@ -57,13 +67,13 @@ class VoiceEffectCache {
       _log.fine('[Cache] No mapping found for voice $voiceId');
       return null;
     }
-    
+
     if (mapping.isExpired) {
       _log.fine('[Cache] Mapping expired for voice $voiceId');
       _cache.remove(voiceId);
       return null;
     }
-    
+
     _log.fine('[Cache] Retrieved mapping for voice $voiceId: ${mapping.appliedEffects}');
     return mapping.appliedEffects;
   }
