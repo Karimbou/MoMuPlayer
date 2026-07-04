@@ -4,13 +4,14 @@ import 'package:logging/logging.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import '../audio/audio_config.dart';
 import '../audio/audio_effect_definitions.dart';
+import 'settings_controller.dart';
 // Removed import of settings_controller to avoid circular dependency and access issues
 
 /// Simplified controller for managing audio effects
 class AudioEffectsController {
 
   /// Constructor
-  AudioEffectsController() {
+  AudioEffectsController(SettingsController settings) {
     // Initialize effect states to false
     for (final type in AudioEffectType.values) {
       if (type != AudioEffectType.none) {
